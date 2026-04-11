@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: MPL-2.0
+"""
+DocuTranslate MCP Server Package
+
+This package provides a Model Context Protocol (MCP) server for DocuTranslate,
+enabling AI assistants to use document translation capabilities.
+
+Features:
+- Async task queue mode: submit translation and get task_id immediately
+- Task status querying
+- Multiple transport protocols support (stdio, sse, streamable-http)
+- Can be mounted to existing FastAPI app
+
+Quick Start:
+    ```bash
+    # Install with MCP dependencies
+    pip install academicbatchtranslate[mcp]
+
+    # Run stdio server (for Claude Desktop, etc.)
+    academicbatchtranslate --mcp
+
+    # Run SSE server (for Cherry Studio)
+    academicbatchtranslate --mcp --transport sse
+    ```
+
+Mount to existing FastAPI:
+    ```python
+    from fastapi import FastAPI
+    from academicbatchtranslate.mcp import get_sse_app
+
+    app = FastAPI()
+    mcp_app = get_sse_app()
+    app.mount("/mcp", mcp_app)
+    ```
+
+For more details, see the README.md in this package.
+"""
+
+try:
+    from academicbatchtranslate.mcp.server import (
+        create_mcp_server,
+        run_mcp_server,
+        get_sse_app,
+        MCP_AVAILABLE,
+    )
+except ImportError:
+    # MCP dependencies not installed
+    MCP_AVAILABLE = False
+
+    def _mcp_not_available(*args, **kwargs):
+        raise ImportError(
+            "MCP dependencies not installed. "
+            "Install with: pip install academicbatchtranslate[mcp]"
+        )
+
+    create_mcp_server = _mcp_not_available
+    run_mcp_server = _mcp_not_available
+    get_sse_app = _mcp_not_available
+
+__all__ = [
+    "create_mcp_server",
+    "run_mcp_server",
+    "get_sse_app",
+    "MCP_AVAILABLE",
+]

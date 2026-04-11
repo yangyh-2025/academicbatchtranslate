@@ -10,8 +10,8 @@ maintainers = [
     { name = "yangyh-2025", email = "yangyuhang2667@163.com" }
 ]
 urls = {
-    Homepage = "https://github.com/yangyh-2025/document-translate",
-    Repository = "https://github.com/yangyh-2025/document-translate.git"
+    "Homepage" = "https://github.com/yangyh-2025/document-translate",
+    "Repository" = "https://github.com/yangyh-2025/document-translate.git"
 }
 dependencies = [
     "fastapi[standard]>=0.115.12",
@@ -54,8 +54,8 @@ dev = [
     "pytest-cov>=7.0.0",
 ]
 [project.scripts]
-academicbatchtranslate = "docutranslate.cli:main"
-docutranslate = "docutranslate.cli:main"
+academicbatchtranslate = "academicbatchtranslate.cli:main"
+docutranslate = "academicbatchtranslate.cli:main"
 
 [build-system]
 requires = ["setuptools>=80.9.0"]       # 或者你需要的 setuptools 版本
@@ -64,12 +64,12 @@ build-backend = "setuptools.build_meta"
 #packages = ["docutranslate"]
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["docutranslate*"]
+include = ["academicbatchtranslate*"]
 [tool.setuptools.package-data]
-docutranslate = ["static/**", "template/**"]
+academicbatchtranslate = ["static/**", "template/**"]
 
 [tool.setuptools.dynamic]
-version = { attr = "docutranslate.__version__" }
+version = { attr = "academicbatchtranslate.__version__" }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -77,7 +77,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=docutranslate --cov-report=term --cov-report=html:htmlcov"
+addopts = "-v --cov=academicbatchtranslate --cov-report=term --cov-report=html:htmlcov"
 env = [
     "DOCUTRANSLATE_BASE_URL=https://api.openai.com/v1",
     "DOCUTRANSLATE_API_KEY=test-api-key",

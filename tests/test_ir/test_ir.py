@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from docutranslate.ir.document import Document
-from docutranslate.ir.markdown_document import MarkdownDocument
-from docutranslate.ir.attachment_manager import (
+from academicbatchtranslate.ir.document import Document
+from academicbatchtranslate.ir.markdown_document import MarkdownDocument
+from academicbatchtranslate.ir.attachment_manager import (
     AttachMent,
     AttachMentManager,
     AttachMentIdentifier

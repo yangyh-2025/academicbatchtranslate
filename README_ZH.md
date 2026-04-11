@@ -101,7 +101,7 @@ AcademicBatchTranslate 提供了功能齐全的 Web 界面和 RESTful API。
 使用 `Client` 类是开始翻译最简单的方式：
 
 ```python
-from docutranslate.sdk import Client
+from academicbatchtranslate.sdk import Client
 
 # 使用您的 AI 平台设置初始化客户端
 client = Client(

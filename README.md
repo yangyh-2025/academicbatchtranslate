@@ -101,7 +101,7 @@ AcademicBatchTranslate provides a full-featured web interface and RESTful API.
 Using the `Client` class is the easiest way to start translating:
 
 ```python
-from docutranslate.sdk import Client
+from academicbatchtranslate.sdk import Client
 
 # Initialize client with your AI platform settings
 client = Client(
