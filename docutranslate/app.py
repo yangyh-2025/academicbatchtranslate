@@ -149,9 +149,9 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
     lifespan=lifespan,
-    title="DocuTranslate API",
+    title="AcademicBatchTranslate API",
     description=f"""
-DocuTranslate 后端服务 API，提供文档翻译、状态查询、结果下载等功能。
+AcademicBatchTranslate 后端服务 API，提供文档翻译、状态查询、结果下载等功能。
 
 **注意**: 所有任务状态都保存在服务进程的内存中，服务重启将导致所有任务信息丢失。
 
@@ -1332,7 +1332,7 @@ def run_app(host=None, port: int | None = None, enable_CORS=False,
         port_to_use = find_free_port(initial_port)
         if port_to_use != initial_port:
             print(f"端口 {initial_port} 被占用，将使用端口 {port_to_use} 代替")
-        print(f"正在启动 DocuTranslate WebUI 版本号：{__version__}")
+        print(f"正在启动 AcademicBatchTranslate WebUI 版本号：{__version__}")
         app.state.port_to_use = port_to_use
         app.state.with_mcp = with_mcp
         if enable_CORS:

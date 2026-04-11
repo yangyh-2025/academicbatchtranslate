@@ -1,6 +1,6 @@
 [project]
-name = "docutranslate"
-description = "文件翻译工具"
+name = "academicbatchtranslate"
+description = "面向学术论文的批量翻译工具，基于大语言模型"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -54,6 +54,7 @@ dev = [
     "pytest-cov>=7.0.0",
 ]
 [project.scripts]
+academicbatchtranslate = "docutranslate.cli:main"
 docutranslate = "docutranslate.cli:main"
 
 [build-system]

@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuTranslate - 交互式文档翻译</title>
-    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <title>AcademicBatchTranslate - 学术论文批量翻译</title>
     <!-- Bootstrap CSS -->
     <link href="/static/bootstrap.css" rel="stylesheet" crossorigin="anonymous">
     <!-- Bootstrap Icons -->
@@ -943,7 +942,6 @@
                     </div>
                     <div id="task-container">
                         <div v-if="tasks.length === 0" class="text-center text-muted mt-5">
-                            <img src="/static/favicon.ico" alt="LOGO" style="width:10%;min-width: 55px; height: auto;">
                             <p class="mt-3">{{ t('noTaskPlaceholder') }}</p>
                         </div>
                         <div v-for="task in tasks" :key="task.uiId" class="card mb-3 task-card">
