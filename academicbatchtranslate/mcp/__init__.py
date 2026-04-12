@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 """
 DocuTranslate MCP Server Package
@@ -30,7 +31,8 @@ Mount to existing FastAPI:
 
     app = FastAPI()
     mcp_app = get_sse_app()
-    app.mount("/mcp", mcp_app)
+()
+app.mount("/mcp", mcp_app)
     ```
 
 For more details, see the README.md in this package.

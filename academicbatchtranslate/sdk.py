@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 # academicbatchtranslate/sdk.py
 
@@ -280,7 +281,7 @@ class Client:
         args = locals()
         call_params = {k: v for k, v in args.items() if k != 'self'}
 
-        # 剔除 kwargs 避免双重传递 (因为 call_params 已经包含了 kwargs 的内容)
+        # 剔除 kwargs 避免双重传递 (因为 call_params 已经包含了 kwargs 的的内容)
         if 'kwargs' in call_params:
             extra = call_params.pop('kwargs')
             call_params.update(extra)
@@ -378,7 +379,7 @@ class Client:
         }
         call_params.update({k: v for k, v in kwargs.items() if v is not None})
 
-        # 2. 参数层级合并
+        # 2.参数层级合并
         final_params = {**default_params, **self.defaults, **call_params}
 
         # 3. 文件校验
@@ -431,4 +432,3 @@ class Client:
                 params["convert_engine"] = "mineru" if not DOCLING_EXIST else "docling"
             else:
                 params["convert_engine"] = "identity"
-

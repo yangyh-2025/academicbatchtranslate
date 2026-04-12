@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 QinHan
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 from abc import abstractmethod
 from dataclasses import dataclass, field

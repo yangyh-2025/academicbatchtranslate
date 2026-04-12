@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 from dataclasses import dataclass
 from io import BytesIO

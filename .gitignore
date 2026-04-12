@@ -56,3 +56,19 @@ desktop.ini
 *.tmp
 *.temp
 *.bak
+*.backup
+*.old
+*.original
+*.new
+*.new.html
+*.full.html.*
+
+# TypeScript build cache
+*.tsbuildinfo
+.tsbuildinfo
+
+# Frontend
+node_modules/
+frontend/dist/
+
+original/

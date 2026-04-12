@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 # academicbatchtranslate.app.py
 import asyncio
@@ -172,6 +173,13 @@ AcademicBatchTranslate 后端服务 API，提供文档翻译、状态查询、�
 service_router = APIRouter(prefix="/service", tags=["Service API"])
 STATIC_DIR = resource_path("static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# 挂载前端构建产物
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+if FRONTEND_DIR.exists():
+    app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
+else:
+    print(f"警告：前端目录不存在 {FRONTEND_DIR}")
 
 
 # ===================================================================

@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2025 yangyh-2025
 # SPDX-License-Identifier: MPL-2.0
 """
 DocuTranslate MCP Server
@@ -435,7 +436,6 @@ if MCP_AVAILABLE and FastMCP is not None and Context is not None:
                 "skip_translate": skip_translate,
                 "glossary_generate_enable": glossary_generate_enable,
                 "glossary_dict": parsed_glossary_dict,
-                "glossary_agent_config": parsed_glossary_agent,
             }
             # Add extra_body if provided
             if extra_body_json and extra_body_json.strip():
@@ -771,7 +771,7 @@ if MCP_AVAILABLE and FastMCP is not None and Context is not None:
                     # Ensure httpx_client is available
                     if service.httpx_client is None:
                         import httpx
-                        service.httpx_client = httpx.AsyncClient()
+                        service.httpx_client = httpx.AsyncClient
 
                     # Download the file directly into memory
                     response = await service.httpx_client.get(file_path, timeout=60.0)
@@ -872,6 +872,9 @@ if MCP_AVAILABLE and FastMCP is not None and Context is not None:
         return sse_app
 
 
+
+
+
     def run_mcp_server(
             transport: str = "stdio",
             host: str = "127.0.0.1",
@@ -893,7 +896,7 @@ if MCP_AVAILABLE and FastMCP is not None and Context is not None:
 
             # Create httpx client immediately (not async)
             # The client will be used in async context later
-            service.httpx_client = httpx.AsyncClient()
+            service.httpx_client = httpx.AsyncClient
 
         mcp = create_mcp_server(host=host, port=port, translation_service=service)
 
