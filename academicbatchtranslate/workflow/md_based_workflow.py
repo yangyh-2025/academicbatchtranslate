@@ -13,7 +13,7 @@ from academicbatchtranslate.global_values.conditional_import import DOCLING_EXIS
 from academicbatchtranslate.glossary.glossary import Glossary
 from academicbatchtranslate.ir.document import Document
 from academicbatchtranslate.ir.markdown_document import MarkdownDocument
-from academicbatchtranslate.utils.markdown_utils import embed_inline_image_from_zip
+from academicbatchtranslate.utils.utils import embed_inline_image_from_zip
 
 if DOCLING_EXIST:
     from academicbatchtranslate.converter.x2md.converter_docling import ConverterDoclingConfig, ConverterDocling

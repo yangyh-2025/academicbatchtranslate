@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from academicbatchtranslate.ir.markdown_document import MarkdownDocument
-from academicbatchtranslate.utils.markdown_utils import MaskDict, uris2placeholder, placeholder2uris
+from academicbatchtranslate.utils.utils import MaskDict, uris2placeholder, placeholder2uris
 
 
 class MDMaskUrisContext:

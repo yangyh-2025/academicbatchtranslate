@@ -19,7 +19,7 @@ import httpx
 from academicbatchtranslate.agents.provider import get_provider_by_domain
 from academicbatchtranslate.agents.thinking.thinking_factory import get_thinking_mode, ProviderType
 from academicbatchtranslate.logger import global_logger
-from academicbatchtranslate.utils.utils import get_httpx_proxies
+from academicbatchtranslate.utils.markdown_utils import get_httpx_proxies
 
 MAX_REQUESTS_PER_ERROR = 15
 MAX_CONTINUE_FETCHES = 2  # 响应被截断时，最多继续获取的次数

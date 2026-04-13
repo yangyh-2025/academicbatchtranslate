@@ -22,7 +22,7 @@ from academicbatchtranslate.converter.x2md.base import X2MarkdownConverter, X2Ma
 from academicbatchtranslate.ir.attachment_manager import AttachMent
 from academicbatchtranslate.ir.document import Document
 from academicbatchtranslate.ir.markdown_document import MarkdownDocument
-from academicbatchtranslate.utils.markdown_utils import embed_inline_image_from_zip
+from academicbatchtranslate.utils.utils import embed_inline_image_from_zip
 
 URL = 'https://mineru.net/api/v4/file-urls/batch'
 

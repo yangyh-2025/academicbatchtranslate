@@ -32,7 +32,7 @@ from pydantic import TypeAdapter
 from academicbatchtranslate import __version__
 from academicbatchtranslate.agents.glossary_agent import GlossaryAgentConfig
 from academicbatchtranslate.core.schemas import TranslatePayload
-from academicbatchtranslate.utils.utils import mask_secrets
+from academicbatchtranslate.utils.markdown_utils import mask_secrets
 from academicbatchtranslate.exporter.md.types import ConvertEngineType
 from academicbatchtranslate.global_values.conditional_import import DOCLING_EXIST
 from academicbatchtranslate.workflow.ass_workflow import AssWorkflow, AssWorkflowConfig

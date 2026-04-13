@@ -38,7 +38,7 @@ def mask_secrets(text: str) -> str:
     )
 
     # 隐藏常见的 token 模式 (40+ 字符的字母数字字符串，可能是 OpenAI key 等)
-)
+    text = re.sub(
         r'(sk-[a-zA-Z0-9_\-]{20,})',
         r'[OPENAI_KEY_HIDDEN]',
         text

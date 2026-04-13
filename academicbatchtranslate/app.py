@@ -82,7 +82,7 @@ from academicbatchtranslate.server import (
 )
 from academicbatchtranslate.translator import default_params
 from academicbatchtranslate.utils.resource_utils import resource_path
-from academicbatchtranslate.utils.utils import mask_secrets
+from academicbatchtranslate.utils.markdown_utils import mask_secrets
 
 # MCP integration imports (optional)
 try:
