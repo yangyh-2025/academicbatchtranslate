@@ -58,10 +58,8 @@ academicbatchtranslate = "academicbatchtranslate.cli:main"
 docutranslate = "academicbatchtranslate.cli:main"
 
 [build-system]
-requires = ["setuptools>=80.9.0"]       # 或者你需要的 setuptools 版本
+requires = ["setuptools>=65.5.0"]
 build-backend = "setuptools.build_meta"
-[tool.setuptools]
-#packages = ["docutranslate"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["academicbatchtranslate*"]
