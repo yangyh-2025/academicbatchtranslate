@@ -9,10 +9,9 @@ authors = [
 maintainers = [
     { name = "yangyh-2025", email = "yangyuhang2667@163.com" }
 ]
-urls = {
-    "Homepage" = "https://github.com/yangyh-2025/document-translate",
-    "Repository" = "https://github.com/yangyh-2025/document-translate.git"
-}
+[project.urls]
+Homepage = "https://github.com/yangyh-2025/document-translate"
+Repository = "https://github.com/yangyh-2025/document-translate.git"
 dependencies = [
     "fastapi[standard]>=0.115.12",
     "jsonpath-ng>=1.7.0",

@@ -23,18 +23,17 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">任务历史</h1>
-        {batches.length > 0 && (
+    <div className="space-y-6 py-4">
+      {batches.length > 0 && (
+        <div className="flex justify-end">
           <Button
             variant="outline"
             onClick={handleClearAll}
           >
             清空历史
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-neutral-500">
@@ -42,6 +41,9 @@ export default function HistoryPage() {
         </div>
       ) : batches.length === 0 ? (
         <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">任务历史</h2>
+          </CardHeader>
           <CardContent className="text-center py-12">
             <div className="text-6xl mb-4">📋</div>
             <p className="text-neutral-500 mb-4">还没有任务历史</p>

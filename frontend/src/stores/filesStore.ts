@@ -7,6 +7,7 @@ export interface FileItem {
   progress: number
   error?: string
   outputFilename?: string
+  taskId?: string  // Backend task ID for progress tracking
 }
 
 interface FilesState {
@@ -14,7 +15,9 @@ interface FilesState {
   addFiles: (files: File[]) => void
   removeFile: (id: string) => void
   updateFileStatus: (id: string, status: FileItem['status'], progress?: number, error?: string) => void
+  updateFileProgressByName: (filename: string, status: FileItem['status'], progress: number, taskId: string) => void
   clearFiles: () => void
+  setFileTaskId: (id: string, taskId: string) => void
 }
 
 export const useFilesStore = create<FilesState>((set) => ({
@@ -34,5 +37,15 @@ export const useFilesStore = create<FilesState>((set) => ({
       f.id === id ? { ...f, status, progress: progress ?? f.progress, error } : f
     ),
   })),
+  updateFileProgressByName: (filename, status, progress, taskId) => set((state) => ({
+    files: state.files.map((f) =>
+      f.file.name === filename ? { ...f, status, progress, taskId } : f
+    ),
+  })),
   clearFiles: () => set({ files: [] }),
+  setFileTaskId: (id, taskId) => set((state) => ({
+    files: state.files.map((f) =>
+      f.id === id ? { ...f, taskId } : f
+    ),
+  })),
 }))

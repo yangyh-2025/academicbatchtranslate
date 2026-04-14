@@ -1,6 +1,10 @@
+import { useEffect } from 'react'
 import { useFilesStore } from '@/stores/filesStore'
 import { useConfigStore } from '@/stores/configStore'
+import { useProgressStore } from '@/stores/progressStore'
 import { useFileUpload } from '@/hooks/useFileUpload'
+import { startBatchStatusPolling } from '@/services/pollingService'
+import { downloadBatchZip } from '@/services/batchService'
 import { BatchUploadZone } from '@/components/batch/BatchUploadZone'
 import { BatchFileCard } from '@/components/batch/BatchFileCard'
 import { BatchFileNameEditor } from '@/components/batch/BatchFileNameEditor'
@@ -9,12 +13,80 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { AnimatePresence } from 'framer-motion'
 
+// Backend batch status response format
+interface BackendBatchStatus {
+  batch_id: string
+  total_files: number
+  completed_count: number
+  error_count: number
+  processing_count: number
+  overall_progress: number
+  all_completed: boolean
+  started_at: string
+  tasks: Array<{
+    task_id: string
+    filename: string
+    is_processing: boolean
+    download_ready: boolean
+    error_flag: boolean
+    progress_percent: number
+    status_message: string
+  }>
+}
+
 export default function BatchPage() {
   const { files, removeFileById, startBatchUpload } = useFileUpload()
   const { payload } = useConfigStore()
+  const { batchId, setProcessing, updateBatchStatus } = useProgressStore()
+
+  // Handle batch status polling
+  useEffect(() => {
+    if (!batchId) return
+
+    const stopPolling = startBatchStatusPolling(batchId, {
+      onBatchStatusUpdate: (status: BackendBatchStatus) => {
+        // Update progress store with backend format
+        updateBatchStatus(status)
+      },
+      onFileUpdate: (filename, status, progress) => {
+        // Update individual file status and progress by filename
+        const { updateFileProgressByName } = useFilesStore.getState()
+        updateFileProgressByName(filename, status as any, progress, '')
+      },
+      onComplete: () => {
+        setProcessing(false)
+      },
+      onError: (error) => {
+        console.error('Batch status polling error:', error)
+        setProcessing(false)
+      }
+    })
+
+    return () => {
+      stopPolling()
+    }
+  }, [batchId])
+
+  // Handle batch download
+  const handleBatchDownload = async () => {
+    if (!batchId) return
+    try {
+      const blob = await downloadBatchZip(batchId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `batch_${batchId}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download failed:', error)
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 py-4 pb-8">
       {/* Batch Progress Overview */}
       <BatchProgressOverview />
 
@@ -69,6 +141,15 @@ export default function BatchPage() {
               >
                 开始批量翻译
               </Button>
+              {batchId && (
+                <Button
+                  variant="secondary"
+                  onClick={handleBatchDownload}
+                  className="flex-1"
+                >
+                  下载结果
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => useFilesStore.getState().clearFiles()}

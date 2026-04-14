@@ -214,6 +214,7 @@ export interface BatchStatus {
   total_files: number
   completed_files: number
   failed_files: number
+  overall_progress: number
   tasks: Record<string, TaskStatus>
   started_at?: string
   completed_at?: string

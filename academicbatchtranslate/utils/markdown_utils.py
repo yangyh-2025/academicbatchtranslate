@@ -71,5 +71,15 @@ def get_httpx_proxies(asyn=True):
             proxies["https://"] = httpx.HTTPTransport(proxy=http_proxy)
     return proxies
 
+
+def format_markdown_latex(content: str) -> str:
+    """
+    格式化 Markdown 中的 LaTeX 内容，确保正确解析。
+
+    这个函数目前只返回原始内容，因为 pymdownx.arithmatex
+    已经能够处理标准的 LaTeX 语法。
+    """
+    return content
+
 if __name__ == '__main__':
     print(get_httpx_proxies())

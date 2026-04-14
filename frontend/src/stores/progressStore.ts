@@ -1,5 +1,17 @@
 import { create } from 'zustand'
 
+// Backend batch status response format
+interface BackendBatchStatus {
+  batch_id: string
+  total_files: number
+  completed_count: number
+  error_count: number
+  processing_count: number
+  overall_progress: number
+  all_completed: boolean
+  started_at: string
+}
+
 interface ProgressState {
   batchId: string | null
   totalFiles: number
@@ -7,8 +19,9 @@ interface ProgressState {
   failedFiles: number
   overallProgress: number
   isProcessing: boolean
+  batchStatus: BackendBatchStatus | null
   setBatchId: (batchId: string | null) => void
-  updateProgress: (completed: number, failed: number, total: number) => void
+  updateBatchStatus: (status: BackendBatchStatus) => void
   setProcessing: (isProcessing: boolean) => void
   resetProgress: () => void
 }
@@ -20,11 +33,17 @@ export const useProgressStore = create<ProgressState>((set) => ({
   failedFiles: 0,
   overallProgress: 0,
   isProcessing: false,
+  batchStatus: null,
   setBatchId: (batchId) => set({ batchId }),
-  updateProgress: (completed, failed, total) => {
-    const overallProgress = total > 0 ? ((completed + failed) / total) * 100 : 0
-    set({ completedFiles: completed, failedFiles: failed, totalFiles: total, overallProgress })
+  updateBatchStatus: (status) => {
+    set({
+      batchStatus: status,
+      totalFiles: status.total_files,
+      completedFiles: status.completed_count,
+      failedFiles: status.error_count,
+      overallProgress: status.overall_progress
+    })
   },
   setProcessing: (isProcessing) => set({ isProcessing }),
-  resetProgress: () => set({ batchId: null, totalFiles: 0, completedFiles: 0, failedFiles: 0, overallProgress: 0, isProcessing: false }),
+  resetProgress: () => set({ batchId: null, totalFiles: 0, completedFiles: 0, failedFiles: 0, overallProgress: 0, isProcessing: false, batchStatus: null }),
 }))

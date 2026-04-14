@@ -597,6 +597,38 @@ FileType = Literal[
 
 
 @service_router.get(
+    "/download/batch/{batch_id}",
+    summary="批量下载翻译结果 (ZIP)",
+    description="将批量任务中所有已完成的文件打包成ZIP下载。",
+    responses={
+        200: {
+            "description": "成功返回ZIP文件。",
+        },
+        404: {
+            "description": "批量任务ID不存在或没有可下载的文件。"
+        },
+    },
+)
+async def service_download_batch(
+    batch_id: str = FastApiPath(..., description="批量任务ID", examples=["batch1234"])
+):
+    zip_content = await translation_service.get_batch_zip(batch_id)
+    if zip_content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"批量任务 '{batch_id}' 不存在或没有可下载的文件。",
+        )
+
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=academicbatchtranslate_batch_{batch_id}.zip"
+        }
+    )
+
+
+@service_router.get(
     "/download/{task_id}/{file_type}",
     summary="下载翻译结果文件",
     responses={
@@ -878,37 +910,6 @@ async def service_get_batch_status(
         raise HTTPException(status_code=404, detail=f"找不到批量任务ID '{batch_id}'。")
     return JSONResponse(content=batch_state)
 
-
-@service_router.get(
-    "/download/batch/{batch_id}",
-    summary="批量下载翻译结果 (ZIP)",
-    description="将批量任务中所有已完成的文件打包成ZIP下载。",
-    responses={
-        200: {
-            "description": "成功返回ZIP文件。",
-        },
-        404: {
-            "description": "批量任务ID不存在或没有可下载的文件。"
-        },
-    },
-)
-async def service_download_batch(
-    batch_id: str = FastApiPath(..., description="批量任务ID", examples=["batch1234"])
-):
-    zip_content = await translation_service.get_batch_zip(batch_id)
-    if zip_content is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"批量任务 '{batch_id}' 不存在或没有可下载的文件。",
-        )
-
-    return Response(
-        content=zip_content,
-        media_type="application/zip",
-        headers={
-            "Content-Disposition": f"attachment; filename=academicbatchtranslate_batch_{batch_id}.zip"
-        }
-    )
 
 
 @service_router.post(

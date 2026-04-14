@@ -1,5 +1,26 @@
 import api from './api'
-import type { BatchTranslateResponse, BatchStatus } from '@/types/api'
+import type { BatchTranslateResponse } from '@/types/api'
+
+// Backend batch status response format (snake_case from Python)
+export interface BackendBatchStatus {
+  batch_id: string
+  total_files: number
+  completed_count: number
+  error_count: number
+  processing_count: number
+  overall_progress: number
+  all_completed: boolean
+  started_at: string
+  tasks: Array<{
+    task_id: string
+    filename: string
+    is_processing: boolean
+    download_ready: boolean
+    error_flag: boolean
+    progress_percent: number
+    status_message: string
+  }>
+}
 
 export async function uploadBatchFiles(
   files: File[],
@@ -11,18 +32,30 @@ export async function uploadBatchFiles(
     formData.append('files', file)
   })
 
+  // Log the payload being sent
+  console.log('Sending payload to /service/translate/batch/file:', payload)
+  console.log('Payload JSON:', JSON.stringify(payload, null, 2))
+
   formData.append('payload', JSON.stringify(payload))
 
-  const response = await api.post('/service/translate/batch/file', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  try {
+    const response = await api.post('/service/translate/batch/file', formData)
+    return response.data
+  } catch (error: any) {
+    console.error('Upload failed with error:', error)
 
-  return response.data
+    // Log detailed error information
+    if (error.response) {
+      console.error('Error response status:', error.response.status)
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2))
+      console.error('Error response headers:', JSON.stringify(error.response.headers, null, 2))
+    }
+
+    throw error
+  }
 }
 
-export async function getBatchStatus(batchId: string): Promise<BatchStatus> {
+export async function getBatchStatus(batchId: string): Promise<BackendBatchStatus> {
   const response = await api.get(`/service/batch-status/${batchId}`)
   return response.data
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { TranslatePayload, WorkflowType } from '@/types/api'
 
 interface ConfigState {
@@ -11,6 +12,9 @@ interface ConfigState {
 
 const initialPayload: Partial<TranslatePayload> = {
   skip_translate: false,
+  base_url: '',
+  api_key: 'xx',
+  model_id: '',
   to_lang: '中文',
   chunk_size: 1000,
   concurrent: 5,
@@ -25,15 +29,23 @@ const initialPayload: Partial<TranslatePayload> = {
   output_filename_suffix: '_translated',
 }
 
-export const useConfigStore = create<ConfigState>((set) => ({
-  workflow: 'auto',
-  payload: initialPayload,
-  updateWorkflow: (workflow: WorkflowType) => set({ workflow }),
-  updatePayload: (payload: Partial<TranslatePayload>) => set((state) => ({
-    payload: { ...state.payload, ...payload }
-  })),
-  resetConfig: () => set({
-    workflow: 'auto',
-    payload: initialPayload,
-  }),
-}))
+export const useConfigStore = create<ConfigState>()(
+  persist(
+    (set) => ({
+      workflow: 'auto',
+      payload: initialPayload,
+      updateWorkflow: (workflow: WorkflowType) => set({ workflow }),
+      updatePayload: (payload: Partial<TranslatePayload>) => set((state) => ({
+        payload: { ...state.payload, ...payload }
+      })),
+      resetConfig: () => set({
+        workflow: 'auto',
+        payload: initialPayload,
+      }),
+    }),
+    {
+      name: 'docutranslate-config',
+      version: 1,
+    }
+  )
+)

@@ -12,11 +12,11 @@ export default defineConfig({
     server: {
         proxy: {
             '/service': {
-                target: 'http://localhost:5000',
+                target: 'http://localhost:8010',
                 changeOrigin: true,
             },
             '/static': {
-                target: 'http://localhost:5000',
+                target: 'http://localhost:8010',
                 changeOrigin: true,
             },
         },

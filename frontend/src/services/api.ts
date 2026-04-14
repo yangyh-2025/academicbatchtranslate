@@ -5,9 +5,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Don't set Content-Type here - let axios set it automatically
+  // FormData will use multipart/form-data with correct boundary
 })
 
 apiClient.interceptors.request.use(

@@ -50,10 +50,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <HashRouter>
-        <div className="min-h-screen bg-neutral-50 flex flex-col">
+        <div className="h-screen bg-neutral-50 flex flex-col">
           <Header />
 
-          <div className="flex-1 flex">
+          <div className="flex-1 flex overflow-hidden">
             <SidebarWrapper />
 
             <main className="flex-1 overflow-auto">
