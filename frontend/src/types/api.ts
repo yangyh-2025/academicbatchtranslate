@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 // Workflow Types
 export type WorkflowType =
   | 'auto'

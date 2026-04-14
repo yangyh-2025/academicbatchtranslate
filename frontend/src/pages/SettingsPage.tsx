@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { useState } from 'react'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import { useConfigStore } from '@/stores/configStore'

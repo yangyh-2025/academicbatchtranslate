@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { TranslatePayload, WorkflowType } from '@/types/api'

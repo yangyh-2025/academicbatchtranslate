@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'

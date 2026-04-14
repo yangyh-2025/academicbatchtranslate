@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { cn } from '@/utils/cn'
 import { FiFileText, FiBook, FiClock, FiSettings } from 'react-icons/fi'
 

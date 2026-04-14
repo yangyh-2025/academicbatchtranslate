@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { getBatchStatus } from './batchService'
 
 // Backend batch status response format (snake_case from Python)

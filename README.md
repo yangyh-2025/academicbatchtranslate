@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2025 YangYuhang -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 # AcademicBatchTranslate 学术论文批量翻译工具
 
 <p align="center">
@@ -9,6 +11,8 @@
   面向学术论文的批量翻译工具，基于大语言模型，专为科研人员高效阅读外文文献而优化
 </p>
 
+---
+### 点击快速访问项目网站：[AcademicBatchtranslate](https://github.com/yangyh-2025/document-translate)
 
 ---
 
@@ -258,7 +262,7 @@ Transformer,Transformer
 
 ## 常见问题
 
-### Q1: 翻译 PDF 失败怎么办？
+### Q1: 翻译PDF失败怎么办？
 
 A: 请确保：
 1. 已在设置中配置 MinerU Token
@@ -317,7 +321,7 @@ python -m academicbatchtranslate.app --host
 本项目基于 [docutranslate](https://github.com/xunbu/docutranslate) 二次开发，原始版权归 QinHan 所有，采用 Mozilla Public License 2.0 (MPL-2.0) 开源。
 
 - **原始项目版权**：© 2025 QinHan
-- **二次开发与封装**：© 2025 yangyh-2025
+- **二次开发与封装**：© 2025 YangYuhang
 - **开源协议**：[MPL-2.0](https://opensource.org/licenses/MPL-2.0)
 
 本项目在遵守 MPL-2.0 许可的基础上进行功能扩展与封装，未修改原始核心逻辑，所有修改部分与新增代码同样以 MPL-2.0 开源发布。

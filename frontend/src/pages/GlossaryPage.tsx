@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { useState } from 'react'
 import { GlossaryTable } from '@/components/glossary/GlossaryTable'
 import { GlossaryUploader } from '@/components/glossary/GlossaryUploader'

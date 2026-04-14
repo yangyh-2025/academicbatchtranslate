@@ -1,7 +1,17 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import { useState } from 'react'
 import { FiHelpCircle, FiX } from 'react-icons/fi'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 
 const README_CONTENT = `# AcademicBatchTranslate 学术论文批量翻译工具
+
+---
+
+### 点击快速访问项目网站：[AcademicBatchtranslate](https://github.com/yangyh-2025/document-translate)
 
 面向学术论文的批量翻译工具，基于大语言模型，专为科研人员高效阅读外文文献而优化
 
@@ -253,12 +263,12 @@ Transformer,Transformer
 
 ## 常见问题
 
-### Q1: 翻译 PDF 失败怎么办？
+### Q1: 翻译PDF失败怎么办？
 
 A: 请确保：
 1. 已在设置中配置 MinerU Token
 2. Token 配额未用完
-3.文件大小在 MinerU 支持范围内（通常几十MB以内）
+3. 文件大小在 MinerU 支持范围内（通常几十MB以内）
 
 ### Q2: 如何使用本地模型（如 Ollama）？
 
@@ -312,7 +322,7 @@ python -m academicbatchtranslate.app --host
 本项目基于 [docutranslate](https://github.com/xunbu/docutranslate) 二次开发，原始版权归 QinHan 所有，采用 Mozilla Public License 2.0 (MPL-2.0) 开源。
 
 - **原始项目版权**：© 2025 QinHan
-- **二次开发与封装**：© 2025 yangyh-2025
+- **二次开发与封装**：© 2025 YangYuhang
 - **开源协议**：[MPL-2.0](https://opensource.org/licenses/MPL-2.0)
 
 本项目在遵守 MPL-2.0 许可的基础上进行功能扩展与封装，未修改原始核心逻辑，所有修改部分与新增代码同样以 MPL-2.0 开源发布。
@@ -345,8 +355,14 @@ export function Header() {
 
       {/* Help Modal */}
       {showHelp && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-8 lg:p-12"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-neutral-200">
               <h2 className="text-xl font-semibold text-neutral-900">使用说明</h2>
@@ -359,107 +375,106 @@ export function Header() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-6">
-              <div className="prose prose-neutral max-w-none">
-                {README_CONTENT.split('\n').map((line, index) => {
-                  // Handle headings
-                  if (line.startsWith('# ')) {
-                    return <h1 key={index} className="text-2xl font-bold text-neutral-900 mt-6 mb-3">{line.slice(2)}</h1>
-                  }
-                  if (line.startsWith('## ')) {
-                    return <h2 key={index} className="text-xl font-semibold text-neutral-900 mt-5 mb-2">{line.slice(3)}</h2>
-                  }
-                  if (line.startsWith('### ')) {
-                    return <h3 key={index} className="text-lg font-semibold text-neutral-800 mt-4 mb-2">{line.slice(4)}</h3>
-                  }
-                  if (line.startsWith('#### ')) {
-                    return <h4 key={index} className="text-base font-semibold text-neutral-700 mt-3 mb-1">{line.slice(5)}</h4>
-                  }
-
-                  // Handle horizontal rule
-                  if (line === '---') {
-                    return <hr key={index} className="my-4 border-neutral-200" />
-                  }
-
-                  // Handle empty lines
-                  if (line.trim() === '') {
-                    return <div key={index} className="h-2" />
-                  }
-
-                  // Handle bullet points
-                  if (line.startsWith('- ')) {
-                    return <li key={index} className="ml-4 text-neutral-700 mb-1">{line.slice(2)}</li>
-                  }
-
-                  // Handle numbered list
-                  const numberedMatch = line.match(/^\d+\. (.+)/)
-                  if (numberedMatch) {
-                    return <li key={index} className="ml-4 text-neutral-700 mb-1">{numberedMatch[1]}</li>
-                  }
-
-                  // Handle code blocks
-                  if (line.startsWith('```')) {
-                    return <pre key={index} className="bg-neutral-900 text-neutral-100 p-3 rounded-lg my-3 overflow-x-auto font-mono text-sm" />
-                  }
-
-                  // Handle inline code
-                  if (line.includes('`')) {
-                    const parts = line.split('`')
-                    return (
-                      <p key={index} className="text-neutral-700 mb-2">
-                        {parts.map((part, i) =>
-                          i % 2 === 0 ? part : <code key={i} className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded font-mono text-sm">{part}</code>
-                        )}
-                      </p>
-                    )
-                  }
-
-                  // Handle bold text
-                  if (line.includes('**')) {
-                    const parts = line.split('**')
-                    return (
-                      <p key={index} className="text-neutral-700 mb-2">
-                        {parts.map((part, i) =>
-                          i % 2 === 0 ? part : <strong key={i}>{part}</strong>
-                        )}
-                      </p>
-                    )
-                  }
-
-                  // Handle table rows (simplified)
-                  if (line.includes('|')) {
-                    const cells = line.split('|').filter(c => c.trim())
-                    return (
-                      <div key={index} className="flex gap-2 text-neutral-700 mb-1">
-                        {cells.map((cell, i) => (
-                          <span key={i} className="flex-1">{cell}</span>
-                        ))}
-                      </div>
-                    )
-                  }
-
-                  // Handle links
-                  if (line.includes('[') && line.includes('](')) {
-                    const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/)
-                    if (linkMatch) {
-                      const [full, text, url] = linkMatch
-                      const beforeLink = line.slice(0, line.indexOf('['))
-                      const afterLink = line.slice(line.indexOf(full) + full.length)
+            <div className="flex-1 overflow-auto">
+              <div className="p-8 sm:p-12 lg:p-16 prose prose-neutral prose-lg max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-3xl font-bold text-neutral-900 mt-8 mb-4 scroll-mt-24">{children}</h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-2xl font-semibold text-neutral-900 mt-10 mb-4 scroll-mt-24">{children}</h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-xl font-semibold text-neutral-800 mt-8 mb-3 scroll-mt-24">{children}</h3>
+                    ),
+                    h4: ({ children }) => (
+                      <h4 className="text-lg font-semibold text-neutral-700 mt-6 mb-2 scroll-mt-24">{children}</h4>
+                    ),
+                    p: ({ children }) => (
+                      <p className="text-neutral-700 mb-4 leading-relaxed">{children}</p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc pl-6 mb-6 space-y-2 text-neutral-700">{children}</ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal pl-6 mb-6 space-y-2 text-neutral-700">{children}</ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="leading-relaxed">{children}</li>
+                    ),
+                    code: ({ node, className, children, ...props }) => {
+                      const isInline = !className || className === 'language-undefined'
+                      if (isInline) {
+                        return (
+                          <code
+                            className="bg-neutral-100 text-neutral-800 px-2 py-1 rounded font-mono text-sm"
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        )
+                      }
                       return (
-                        <p key={index} className="text-neutral-700 mb-2">
-                          {beforeLink}
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 underline">
-                            {text}
-                          </a>
-                          {afterLink}
-                        </p>
+                        <code
+                          className="block bg-neutral-900 text-neutral-100 p-4 rounded-lg my-6 overflow-x-auto font-mono text-sm leading-relaxed"
+                          {...props}
+                        >
+                          {children}
+                        </code>
                       )
-                    }
-                  }
-
-                  // Default paragraph
-                  return <p key={index} className="text-neutral-700 mb-2">{line}</p>
-                })}
+                    },
+                    pre: ({ children }) => (
+                      <pre className="mb-6">{children}</pre>
+                    ),
+                    a: ({ children, href, ...props }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 underline"
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-neutral-900">{children}</strong>
+                    ),
+                    hr: () => (
+                      <hr className="my-8 border-t-2 border-neutral-200" />
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-neutral-300 pl-4 py-2 my-6 bg-neutral-50 rounded-r-lg text-neutral-700">
+                        {children}
+                      </blockquote>
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto my-6 rounded-lg border border-neutral-200">
+                        <table className="min-w-full divide-y divide-neutral-200">{children}</table>
+                      </div>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="bg-neutral-50">{children}</thead>
+                    ),
+                    tbody: ({ children }) => (
+                      <tbody className="bg-white divide-y divide-neutral-200">{children}</tbody>
+                    ),
+                    tr: ({ children }) => (
+                      <tr>{children}</tr>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">{children}</th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-6 py-3 text-sm text-neutral-700">{children}</td>
+                    ),
+                  }}
+                >
+                  {README_CONTENT}
+                </ReactMarkdown>
               </div>
             </div>
           </div>

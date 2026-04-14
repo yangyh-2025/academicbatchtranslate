@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 YangYuhang
+// SPDX-License-Identifier: MPL-2.0
+
 import api from './api'
 import type { DefaultParams, MetaInfo, EngineList } from '@/types/api'
 
