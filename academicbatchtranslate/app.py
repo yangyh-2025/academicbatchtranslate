@@ -60,7 +60,7 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
     get_redoc_html,
 )
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import (
     BaseModel,
@@ -175,12 +175,8 @@ service_router = APIRouter(prefix="/service", tags=["Service API"])
 STATIC_DIR = resource_path("static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# 挂载前端构建产物
+# 定义前端目录（稍后挂载）
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
-if FRONTEND_DIR.exists():
-    app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
-else:
-    print(f"警告：前端目录不存在 {FRONTEND_DIR}")
 
 
 # ===================================================================
@@ -1266,8 +1262,12 @@ async def service_flat_translate(
 # ===================================================================
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def main_page():
+@app.get("/", include_in_schema=False)
+async def main_page_redirect():
+    # 如果前端构建目录存在，重定向到 /app
+    if FRONTEND_DIR.exists():
+        return RedirectResponse(url="/app", status_code=302)
+    # 否则返回旧的静态 index.html
     index_path = Path(STATIC_DIR) / "index.html"
     if not index_path.exists():
         raise HTTPException(status_code=404, detail="index.html not found")
@@ -1281,7 +1281,12 @@ async def main_page():
 
 @app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
 async def main_page_admin():
-    index_path = Path(STATIC_DIR) / "index.html"
+    # 优先使用前端构建目录的 index.html
+    if FRONTEND_DIR.exists():
+        index_path = FRONTEND_DIR / "index.html"
+    else:
+        index_path = Path(STATIC_DIR) / "index.html"
+
     if not index_path.exists():
         raise HTTPException(status_code=404, detail="index.html not found")
     no_cache_headers = {
@@ -1318,6 +1323,12 @@ async def redoc_html():
 
 
 app.include_router(service_router)
+
+# 挂载前端构建产物到 /app 路径（必须在所有路由之后）
+if FRONTEND_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+else:
+    print(f"警告：前端目录不存在 {FRONTEND_DIR}")
 
 
 # ===================================================================
