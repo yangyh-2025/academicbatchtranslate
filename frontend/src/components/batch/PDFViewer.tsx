@@ -6,9 +6,12 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/TextLayer.css'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 
-// 配置 PDF.js worker 使用本地文件
-// 注意：路径需要匹配 Vite 的 base 配置 (/app)
-pdfjs.GlobalWorkerOptions.workerSrc = '/app/pdf.worker.min.js'
+// 配置 PDF.js worker 使用来自 node_modules 的正确文件
+// react-pdf v9+ 需要显式配置 worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString()
 
 interface PDFViewerProps {
   pdfData: string  // Base64 encoded PDF

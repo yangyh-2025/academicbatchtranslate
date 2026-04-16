@@ -592,6 +592,26 @@ class TranslationService:
                         f"生成 {file_type} 文件时出错: {export_error}", exc_info=True
                     )
 
+            # 在翻译完成时提前生成 PDF，避免下载时长时间等待
+            task_logger.info("正在生成 PDF 文件...")
+            if "html" in downloadable_files:
+                html_path = downloadable_files["html"]["path"]
+                pdf_content = await self._html_to_pdf(html_path)
+                if pdf_content:
+                    pdf_filename = self._format_filename(filename_stem, ".pdf", payload)
+                    pdf_path = os.path.join(temp_dir, pdf_filename)
+                    with open(pdf_path, "wb") as f:
+                        f.write(pdf_content)
+                    downloadable_files["pdf"] = {
+                        "path": pdf_path,
+                        "filename": pdf_filename,
+                    }
+                    task_logger.info(f"成功生成 PDF 文件: {pdf_filename}")
+                else:
+                    task_logger.warning("PDF 生成失败，请检查 Playwright 安装")
+            else:
+                task_logger.warning("没有可用的 HTML 文件，跳过 PDF 生成")
+
             attachment_files = {}
             attachment_object = workflow.get_attachment()
             if attachment_object and attachment_object.attachment_dict:
@@ -1582,10 +1602,18 @@ class TranslationService:
                     # Add requested formats
                     for file_type in formats:
                         if file_type == "pdf":
-                            # Generate PDF from HTML or Markdown
-                            pdf_content = await self._generate_pdf_for_task(task_id, task_state)
-                            if pdf_content:
-                                zipf.writestr(f"{filename_stem}.pdf", pdf_content)
+                            # 优先使用已生成的PDF
+                            if "pdf" in downloadable_files:
+                                file_info = downloadable_files["pdf"]
+                                pdf_path = file_info.get("path")
+                                if pdf_path and os.path.exists(pdf_path):
+                                    with open(pdf_path, 'rb') as f:
+                                        zipf.writestr(f"{filename_stem}.pdf", f.read())
+                            else:
+                                # 回退：动态生成PDF
+                                pdf_content = await self._generate_pdf_for_task(task_id, task_state)
+                                if pdf_content:
+                                    zipf.writestr(f"{filename_stem}.pdf", pdf_content)
                         elif file_type in downloadable_files:
                             # Get existing file
                             file_info = downloadable_files[file_type]
@@ -1831,8 +1859,15 @@ class TranslationService:
         result = {"original_pdf": None, "translated_pdf": None}
         downloadable_files = task_state.get("downloadable_files", {})
 
-        # 获取译文PDF（从HTML或Markdown生成）
-        if "html" in downloadable_files:
+        # 获取译文PDF（优先使用已生成的PDF）
+        if "pdf" in downloadable_files:
+            pdf_path = downloadable_files["pdf"].get("path")
+            if pdf_path and os.path.exists(pdf_path):
+                with open(pdf_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                    result["translated_pdf"] = base64.b64encode(pdf_bytes).decode("utf-8")
+        # 回退：从HTML或Markdown动态生成
+        elif "html" in downloadable_files:
             html_path = downloadable_files["html"].get("path")
             if html_path and os.path.exists(html_path):
                 pdf_bytes = await self._html_to_pdf(html_path)
