@@ -360,7 +360,7 @@ export function Header() {
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-neutral-200 px-6 flex items-center justify-between shadow-sm">
+      <header className="h-16 bg-white border-b border-neutral-200 px-6 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-3">
           <img src="./tubiao.png" alt="图标" className="w-10 h-10 rounded-lg" />
           <div>

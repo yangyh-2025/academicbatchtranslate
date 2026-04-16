@@ -124,6 +124,7 @@ MEDIA_TYPES = {
     "epub": "application/epub+zip",
     "ass": "text/plain; charset=utf-8",
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "pdf": "application/pdf",
 }
 
 
@@ -238,6 +239,9 @@ class TranslationService:
         # Reference to main event loop (set by application)
         self.main_event_loop: Optional[asyncio.AbstractEventLoop] = None
 
+        # Playwright browser installation status
+        self._playwright_browsers_installed = False
+
     def initialize(self, httpx_client: httpx.AsyncClient, main_event_loop: asyncio.AbstractEventLoop):
         """Initialize the service with HTTP client and event loop."""
         self.httpx_client = httpx_client
@@ -319,6 +323,7 @@ class TranslationService:
             # 这样可以确保所有字段都正确传递，不会因为 exclude_none 或其他原因丢失
             payload_data = {
                 "workflow_type": detected_type,
+                "original_workflow_type": "auto",  # 标记原始工作流类型，用于验证器跳过 base_url 检查
             }
 
             # 从 BaseWorkflowParams 复制所有字段
@@ -370,7 +375,14 @@ class TranslationService:
 
             if detected_type == "markdown_based" and not payload_data.get("convert_engine"):
                 if Path(original_filename).suffix.lower() == ".pdf":
-                    payload_data["convert_engine"] = "mineru" if not DOCLING_EXIST else "docling"
+                    # 检查是否有mineru_token，只有提供了token才使用mineru
+                    if payload_data.get("mineru_token"):
+                        payload_data["convert_engine"] = "mineru"
+                    elif DOCLING_EXIST:
+                        payload_data["convert_engine"] = "docling"
+                    else:
+                        # 两个都不可用时，使用mineru但会提示用户需要token
+                        payload_data["convert_engine"] = "mineru"
                 else:
                     payload_data["convert_engine"] = "identity"
 
@@ -1526,6 +1538,272 @@ class TranslationService:
 
         zip_buffer.seek(0)
         return zip_buffer.getvalue()
+
+    async def get_batch_zip_with_formats(self, batch_id: str, formats: List[str], task_ids: Optional[List[str]] = None) -> Optional[bytes]:
+        """
+        Get completed files from a batch in specified formats as a ZIP archive.
+
+        Args:
+            batch_id: Batch ID
+            formats: List of file types to include (e.g., ['markdown', 'docx', 'pdf'])
+            task_ids: Optional list of task IDs (for single file downloads)
+
+        Returns:
+            ZIP file content as bytes, or None if batch not found
+        """
+        batch_state = self.batch_tasks_state.get(batch_id)
+        if not batch_state:
+            return None
+
+        # For single file downloads, use provided task_ids instead of batch_state["task_ids"]
+        task_ids_to_process = task_ids if task_ids else batch_state.get("task_ids", [])
+        if not task_ids_to_process:
+            return None
+
+        import zipfile
+        from io import BytesIO
+
+        zip_buffer = BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for task_id in task_ids_to_process:
+                task_state = self.get_task_state(task_id)
+                if task_state and task_state.get("download_ready"):
+                    downloadable_files = task_state.get("downloadable_files", {})
+                    filename_stem = task_state.get("original_filename_stem", task_id)
+
+                    # Add requested formats
+                    for file_type in formats:
+                        if file_type == "pdf":
+                            # Generate PDF from HTML or Markdown
+                            pdf_content = await self._generate_pdf_for_task(task_id, task_state)
+                            if pdf_content:
+                                zipf.writestr(f"{filename_stem}.pdf", pdf_content)
+                        elif file_type in downloadable_files:
+                            # Get existing file
+                            file_info = downloadable_files[file_type]
+                            file_path = file_info.get("path")
+                            filename = file_info.get("filename")
+                            if file_path and os.path.exists(file_path):
+                                try:
+                                    with open(file_path, 'rb') as f:
+                                        zipf.writestr(filename, f.read())
+                                except Exception as e:
+                                    print(f"[Batch {batch_id}] Failed to add {filename} to ZIP: {e}")
+
+        zip_buffer.seek(0)
+        return zip_buffer.getvalue()
+
+    async def _generate_pdf_for_task(self, task_id: str, task_state: Dict[str, Any]) -> Optional[bytes]:
+        """
+        Generate PDF for a task from HTML or Markdown.
+
+        Args:
+            task_id: Task ID
+            task_state: Task state dictionary
+
+        Returns:
+            PDF content as bytes, or None if generation fails
+        """
+        downloadable_files = task_state.get("downloadable_files", {})
+
+        # Try HTML first
+        if "html" in downloadable_files:
+            html_path = downloadable_files["html"]["path"]
+            if os.path.exists(html_path):
+                return await self._html_to_pdf(html_path)
+
+        # Try Markdown as fallback
+        if "markdown" in downloadable_files:
+            md_path = downloadable_files["markdown"]["path"]
+            if os.path.exists(md_path):
+                return await self._markdown_to_pdf(md_path)
+
+        return None
+
+    def _ensure_playwright_browsers(self) -> bool:
+        """确保Playwright浏览器已安装。"""
+        if self._playwright_browsers_installed:
+            return True
+
+        try:
+            import subprocess
+            import sys
+
+            print("正在安装Playwright浏览器（Chromium）...")
+            result = subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"],
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+
+            if result.returncode == 0:
+                self._playwright_browsers_installed = True
+                print("Playwright浏览器安装成功")
+                return True
+            else:
+                print(f"Playwright浏览器安装失败: {result.stderr}")
+                return False
+        except subprocess.TimeoutExpired:
+            print("Playwright浏览器安装超时")
+            return False
+        except Exception as e:
+            print(f"安装Playwright浏览器时出错: {e}")
+            return False
+
+    async def _html_to_pdf(self, html_path: str) -> Optional[bytes]:
+        """
+        Convert HTML to PDF using Playwright.
+
+        Args:
+            html_path: Path to HTML file
+
+        Returns:
+            PDF content as bytes, or None if conversion fails
+        """
+        # 确保浏览器已安装
+        if not self._ensure_playwright_browsers():
+            print("无法安装Playwright浏览器，PDF生成失败")
+            return None
+
+        try:
+            from playwright.async_api import async_playwright
+
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+
+                # Load HTML file
+                file_url = "file://" + html_path.replace(os.sep, '/')
+                await page.goto(file_url)
+
+                # Generate PDF
+                pdf_bytes = await page.pdf(
+                    format="A4",
+                    margin={"top": "1cm", "right": "1cm", "bottom": "1cm", "left": "1cm"},
+                    print_background=True
+                )
+
+                await browser.close()
+                return pdf_bytes
+        except ImportError:
+            print("playwright未安装，PDF生成失败")
+            return None
+        except Exception as e:
+            print(f"HTML到PDF转换失败: {e}")
+            return None
+
+    async def _markdown_to_pdf(self, md_path: str) -> Optional[bytes]:
+        """
+        Convert Markdown to PDF using Playwright.
+
+        Args:
+            md_path: Path to Markdown file
+
+        Returns:
+            PDF content as bytes, or None if conversion fails
+        """
+        # 确保浏览器已安装
+        if not self._ensure_playwright_browsers():
+            print("无法安装Playwright浏览器，PDF生成失败")
+            return None
+
+        try:
+            import markdown
+            from playwright.async_api import async_playwright
+
+            # Read Markdown file
+            with open(md_path, 'r', encoding='utf-8') as f:
+                md_content = f.read()
+
+            # Convert Markdown to HTML
+            html_content = markdown.markdown(
+                md_content,
+                extensions=['tables', 'fenced_code', 'codehilite']
+            )
+
+            # Wrap in basic HTML template
+            full_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; padding: 40px; }}
+                    h1 {{ color: #333; margin-top: 30px; margin-bottom: 15px; }}
+                    h2 {{ color: #444; margin-top: 25px; margin-bottom: 12px; }}
+                    h3 {{ color: #555; margin-top: 20px; margin-bottom: 10px; }}
+                    pre {{ background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                    code {{ font-family: Consolas, Monaco, monospace; background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }}
+                    blockquote {{ border-left: 4px solid #ddd; padding-left: 15px; color: #666; }}
+                    table {{ border-collapse: collapse; width: 100%; }}
+                    th, td {{ border: 1px solid #ddd; padding: 8px; }}
+                    th {{ background: #f5f5f5; }}
+                </style>
+            </head>
+            <body>{html_content}</body>
+            </html>
+            """
+
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+
+                # Load HTML content
+                await page.set_content(full_html)
+
+                # Generate PDF
+                pdf_bytes = await page.pdf(
+                    format="A4",
+                    margin={"top": "1cm", "right": "1cm", "bottom": "1cm", "left": "1cm"},
+                    print_background=True
+                )
+
+                await browser.close()
+                return pdf_bytes
+        except Exception as e:
+            print(f"Markdown到PDF转换失败: {e}")
+            return None
+
+    def get_file_content(self, task_id: str) -> Optional[Dict[str, str]]:
+        """
+        Get original and translated content for preview.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            Dictionary with 'original' and 'translated' content, or None if not found
+        """
+        task_state = self.get_task_state(task_id)
+        if not task_state:
+            return None
+
+        downloadable_files = task_state.get("downloadable_files", {})
+        result = {"original": "", "translated": ""}
+
+        # Get original content (from markdown if available)
+        if "markdown" in downloadable_files:
+            original_path = downloadable_files["markdown"].get("path")
+            if original_path and os.path.exists(original_path):
+                with open(original_path, 'r', encoding='utf-8') as f:
+                    result["original"] = f.read()
+
+        # Try to find translated content (from html or translated markdown)
+        if "html" in downloadable_files:
+            html_path = downloadable_files["html"].get("path")
+            if html_path and os.path.exists(html_path):
+                with open(html_path, 'r', encoding='utf-8') as f:
+                    result["translated"] = f.read()
+        elif "markdown" in downloadable_files:
+            # Fallback: use same content for both (original file)
+            md_path = downloadable_files["markdown"].get("path")
+            if md_path and os.path.exists(md_path):
+                with open(md_path, 'r', encoding='utf-8') as f:
+                    result["translated"] = f.read()
+
+        return result
 
     async def release_batch(self, batch_id: str) -> Dict[str, Any]:
         """Release all resources for a batch task."""

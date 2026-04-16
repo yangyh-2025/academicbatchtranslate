@@ -28,7 +28,7 @@ interface PollingCallbacks {
   onProgress?: (progress: number) => void
   onComplete?: () => void
   onError?: (error: any) => void
-  onFileUpdate?: (filename: string, status: string, progress: number) => void
+  onFileUpdate?: (filename: string, status: string, progress: number, taskId: string) => void
   onBatchStatusUpdate?: (status: BackendBatchStatus) => void
 }
 
@@ -67,7 +67,8 @@ export function startBatchStatusPolling(
           callbacks.onFileUpdate?.(
             task.filename,  // Use filename instead of task_id
             fileStatus,
-            task.progress_percent || 0
+            task.progress_percent || 0,
+            task.task_id
           )
         })
       }

@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion'
-import { FiFile, FiCheckCircle, FiXCircle, FiDownload, FiTrash2 } from 'react-icons/fi'
+import { FiFile, FiCheckCircle, FiXCircle, FiDownload, FiTrash2, FiEye } from 'react-icons/fi'
 import { cn } from '@/utils/cn'
 import type { FileItem } from '@/stores/filesStore'
 
 interface BatchFileCardProps {
   file: FileItem
   onRemove?: (id: string) => void
-  onDownload?: (id: string) => void
+  onDownload?: (file: FileItem) => void
+  onPreview?: (file: FileItem) => void
 }
 
 const statusConfig = {
@@ -17,7 +18,7 @@ const statusConfig = {
   failed: { icon: FiXCircle, color: 'text-danger', label: '失败' },
 }
 
-export function BatchFileCard({ file, onRemove, onDownload }: BatchFileCardProps) {
+export function BatchFileCard({ file, onRemove, onDownload, onPreview }: BatchFileCardProps) {
   const StatusIcon = statusConfig[file.status].icon
   const statusColor = statusConfig[file.status].color
   const statusLabel = statusConfig[file.status].label
@@ -103,14 +104,27 @@ export function BatchFileCard({ file, onRemove, onDownload }: BatchFileCardProps
 
         {/* Actions */}
         <div className="flex flex-col gap-2">
-          {onDownload && file.status === 'completed' && (
-            <button
-              onClick={() => onDownload(file.id)}
-              className="p-2 hover:bg-success-light hover:text-success rounded-lg transition-colors"
-              title="下载"
-            >
-              <FiDownload className="w-4 h-4" />
-            </button>
+          {file.status === 'completed' && (
+            <>
+              {onPreview && (
+                <button
+                  onClick={() => onPreview(file)}
+                  className="p-2 hover:bg-primary-light hover:text-primary rounded-lg transition-colors"
+                  title="预览"
+                >
+                  <FiEye className="w-4 h-4" />
+                </button>
+              )}
+              {onDownload && (
+                <button
+                  onClick={() => onDownload(file)}
+                  className="p-2 hover:bg-success-light hover:text-success rounded-lg transition-colors"
+                  title="下载"
+                >
+                  <FiDownload className="w-4 h-4" />
+                </button>
+              )}
+            </>
           )}
           {onRemove && (
             <button

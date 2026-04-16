@@ -590,6 +590,7 @@ FileType = Literal[
     "epub",
     "ass",
     "pptx",
+    "pdf",
 ]
 
 
@@ -660,6 +661,83 @@ async def service_download_file(
     media_type = MEDIA_TYPES.get(file_type, "application/octet-stream")
 
     return FileResponse(path=file_path, media_type=media_type, filename=filename)
+
+
+@service_router.post(
+    "/download/batch/{batch_id}/formats",
+    summary="批量下载指定格式的翻译结果",
+    description="将批量任务中所有已完成的文件按指定格式打包成ZIP下载。",
+)
+async def service_download_batch_formats(
+    batch_id: str = FastApiPath(..., description="批量任务ID", examples=["batch1234"]),
+    formats: List[str] = Body(..., description="文件类型列表", examples=[["markdown", "docx", "pdf"]]),
+):
+    zip_content = await translation_service.get_batch_zip_with_formats(batch_id, formats)
+    if zip_content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"批量任务 '{batch_id}' 不存在或没有可下载的文件。",
+        )
+
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=academicbatchtranslate_batch_{batch_id}.zip"
+        }
+    )
+
+
+@service_router.post(
+    "/download/{task_id}/formats",
+    summary="下载指定格式的翻译结果",
+    description="按指定格式下载单个任务的翻译结果，打包成ZIP。",
+)
+async def service_download_file_formats(
+    task_id: str = FastApiPath(..., description="任务ID", examples=["b2865b93"]),
+    formats: List[str] = Body(..., description="文件类型列表", examples=[["markdown", "docx", "pdf"]]),
+):
+    # Get task state to check if task exists and is ready
+    task_state = translation_service.get_task_state(task_id)
+    if not task_state or not task_state.get("download_ready"):
+        raise HTTPException(
+            status_code=404,
+            detail=f"任务 '{task_id}' 不存在或未完成下载准备。",
+        )
+
+    # Use batch format logic with single task
+    zip_content = await translation_service.get_batch_zip_with_formats(f"single_{task_id}", formats, [task_id])
+    if zip_content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"任务 '{task_id}' 没有可下载的文件。",
+        )
+
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=task_{task_id}.zip"
+        }
+    )
+
+
+@service_router.get(
+    "/content/{task_id}",
+    summary="获取文件内容用于预览",
+    description="获取任务的原文和译文内容用于预览。",
+)
+async def service_get_file_content(
+    task_id: str = FastApiPath(..., description="任务ID", examples=["b2865b93"]),
+):
+    content = translation_service.get_file_content(task_id)
+    if content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"任务 '{task_id}' 不存在或无法获取内容。",
+        )
+
+    return JSONResponse(content=content)
 
 
 @service_router.get(

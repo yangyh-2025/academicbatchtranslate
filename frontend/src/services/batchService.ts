@@ -74,3 +74,22 @@ export async function releaseBatch(batchId: string): Promise<any> {
   const response = await api.post(`/service/release/batch/${batchId}`)
   return response.data
 }
+
+export async function downloadBatchFormats(batchId: string, formats: string[]): Promise<Blob> {
+  const response = await api.post(`/service/download/batch/${batchId}/formats`, formats, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function downloadSingleFileFormats(taskId: string, formats: string[]): Promise<Blob> {
+  const response = await api.post(`/service/download/${taskId}/formats`, formats, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function getFileContent(taskId: string): Promise<{ original: string; translated: string }> {
+  const response = await api.get(`/service/content/${taskId}`)
+  return response.data
+}

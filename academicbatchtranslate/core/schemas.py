@@ -202,6 +202,11 @@ class BaseWorkflowParams(BaseModel):
     output_filename_custom: Optional[str] = Field(
         default=None, description="自定义输出文件名（不含扩展名），支持 {original}（原文件名）和 {timestamp}（时间戳）占位符"
     )
+    # 内部字段，用于标记原始工作流类型（auto 模式转换时使用）
+    original_workflow_type: Optional[str] = Field(
+        default=None,
+        exclude=True,  # 不包含在序列化输出中
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -215,15 +220,21 @@ class BaseWorkflowParams(BaseModel):
 
         if isinstance(values, dict):
             if not values.get("skip_translate"):
+                # 检查是否是 auto 模式（检查当前 workflow_type 或 original_workflow_type）
+                workflow_type = values.get("workflow_type")
+                original_workflow_type = values.get("original_workflow_type")
+                is_auto_mode = workflow_type == "auto" or original_workflow_type == "auto"
+
                 # 如果是空字符串 "" (即默认值)，not "" 为 True，会触发错误，符合预期
                 if not (values.get("base_url") or values.get("baseurl")):
                     # Auto 模式在校验前不强制要求 base_url
-                    if values.get("workflow_type") != "auto":
+                    if not is_auto_mode:
                         raise ValueError(
                             "当 `skip_translate` 为 `False` 时, `base_url` 或 `baseurl` 字段是必须的。"
                         )
                 if not values.get("model_id"):
-                    if values.get("workflow_type") != "auto":
+                    # Auto 模式在校验前不强制要求 model_id
+                    if not is_auto_mode:
                         raise ValueError(
                             "当 `skip_translate` 为 `False` 时, `model_id` 字段是必须的。"
                         )

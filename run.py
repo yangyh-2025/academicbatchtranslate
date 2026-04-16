@@ -31,6 +31,33 @@ def check_and_install_python_deps():
             print(f"  ✅ {package} 安装完成")
 
 
+def check_and_install_playwright():
+    """检查并安装Playwright浏览器"""
+    print("\n📦 检查 Playwright 浏览器...")
+
+    try:
+        from playwright.sync_api import sync_playwright
+
+        # 尝试启动浏览器来检查是否已安装
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch()
+                browser.close()
+            print("  ✅ Playwright 浏览器已安装")
+            return True
+        except Exception:
+            # 浏览器未安装，提示用户手动安装
+            print("  ⚠️  Playwright 浏览器未安装")
+            print("  💡 请手动运行以下命令安装浏览器：")
+            print(f"     {sys.executable} -m playwright install chromium")
+            print("  ℹ️  安装后 PDF 下载功能将可用")
+            return False
+    except ImportError:
+        print("  ⚠️  playwright 未安装，PDF 功能将不可用")
+        print("  💡 如需 PDF 功能，请运行: pip install playwright")
+        return False
+
+
 def check_and_install_frontend_deps():
     """检查并安装前端依赖"""
     frontend_dir = Path("frontend")
@@ -134,21 +161,20 @@ def start_backend():
             print("请先创建虚拟环境：python -m venv .venv")
             return False
 
-        # 使用 subprocess 启动服务（保持命令行打开）
-        python_cmd = str(venv_python)
-        app_module = "academicbatchtranslate.app"
+        # 导入 run_app 函数并调用（启用 CORS）
+        from academicbatchtranslate.app import run_app
 
-        print(f"📝 启动命令: {python_cmd} -m {app_module}")
         print("=" * 60)
         print(f"✨ 服务将在以下地址启动：")
         print(f"   🌐 主页面: http://localhost:8010")
-        print(f"   📝 前端应用: http://localhost:8010/frontend")
+        print(f"   📝 前端应用: http://localhost:8010/app")
         print(f"   📚 API 文档: http://localhost:8010/docs")
         print("=" * 60)
+        print("已启用跨域支持 (CORS)")
         print("按 Ctrl+C 停止服务")
         print()
 
-        subprocess.run([python_cmd, "-m", app_module])
+        run_app(host="0.0.0.0", port=8010, enable_CORS=True, with_mcp=False)
 
     except KeyboardInterrupt:
         print("\n\n⏸️ 服务已停止")
@@ -168,17 +194,20 @@ def main():
     # 步骤 1: 检查并安装 Python 依赖
     check_and_install_python_deps()
 
-    # 步骤 2: 检查并安装前端依赖
+    # 步骤 2: 检查并安装 Playwright 浏览器
+    check_and_install_playwright()
+
+    # 步骤 3: 检查并安装前端依赖
     if not check_and_install_frontend_deps():
         print("\n❌ 前端依赖安装失败，无法继续")
         sys.exit(1)
 
-    # 步骤 3: 构建前端
+    # 步骤 4: 构建前端
     if not build_frontend():
         print("\n❌ 前端构建失败，无法继续")
         sys.exit(1)
 
-    # 步骤 4: 启动后端
+    # 步骤 5: 启动后端
     start_backend()
 
 

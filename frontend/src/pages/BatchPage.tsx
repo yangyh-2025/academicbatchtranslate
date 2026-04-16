@@ -1,20 +1,23 @@
 // SPDX-FileCopyrightText: 2025 YangYuhang
 // SPDX-License-Identifier: MPL-2.0
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useFilesStore } from '@/stores/filesStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { startBatchStatusPolling } from '@/services/pollingService'
-import { downloadBatchZip } from '@/services/batchService'
+import { downloadBatchFormats, downloadSingleFileFormats, getFileContent } from '@/services/batchService'
 import { BatchUploadZone } from '@/components/batch/BatchUploadZone'
 import { BatchFileCard } from '@/components/batch/BatchFileCard'
 import { BatchFileNameEditor } from '@/components/batch/BatchFileNameEditor'
 import { BatchProgressOverview } from '@/components/batch/BatchProgressOverview'
+import { DownloadFormatModal } from '@/components/batch/DownloadFormatModal'
+import { FilePreviewModal } from '@/components/batch/FilePreviewModal'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { AnimatePresence } from 'framer-motion'
+import type { FileItem } from '@/stores/filesStore'
 
 // Backend batch status response format
 interface BackendBatchStatus {
@@ -42,6 +45,14 @@ export default function BatchPage() {
   const { payload } = useConfigStore()
   const { batchId, setProcessing, updateBatchStatus } = useProgressStore()
 
+  // Modal states
+  const [showFormatModal, setShowFormatModal] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [selectedFormats, setSelectedFormats] = useState<string[]>(['markdown'])
+  const [downloadMode, setDownloadMode] = useState<'batch' | 'single'>('batch')
+  const [currentFileForDownload, setCurrentFileForDownload] = useState<FileItem | null>(null)
+  const [previewContent, setPreviewContent] = useState<{ original: string; translated: string } | null>(null)
+
   // Handle batch status polling
   useEffect(() => {
     if (!batchId) return
@@ -51,10 +62,10 @@ export default function BatchPage() {
         // Update progress store with backend format
         updateBatchStatus(status)
       },
-      onFileUpdate: (filename, status, progress) => {
+      onFileUpdate: (filename, status, progress, taskId) => {
         // Update individual file status and progress by filename
         const { updateFileProgressByName } = useFilesStore.getState()
-        updateFileProgressByName(filename, status as any, progress, '')
+        updateFileProgressByName(filename, status as any, progress, taskId)
       },
       onComplete: () => {
         setProcessing(false)
@@ -70,21 +81,61 @@ export default function BatchPage() {
     }
   }, [batchId])
 
-  // Handle batch download
-  const handleBatchDownload = async () => {
+  // Handle batch download - open format modal
+  const handleBatchDownload = () => {
     if (!batchId) return
+    setDownloadMode('batch')
+    setShowFormatModal(true)
+  }
+
+  // Handle single file download - open format modal
+  const handleSingleDownload = (file: FileItem) => {
+    setCurrentFileForDownload(file)
+    setDownloadMode('single')
+    setShowFormatModal(true)
+  }
+
+  // Confirm download with selected formats
+  const handleDownloadConfirm = async (formats: string[]) => {
+    setShowFormatModal(false)
+    if (formats.length === 0) return
+
     try {
-      const blob = await downloadBatchZip(batchId)
+      let blob: Blob
+      let filename: string
+
+      if (downloadMode === 'batch' && batchId) {
+        blob = await downloadBatchFormats(batchId, formats)
+        filename = `batch_${batchId}_${formats.join('_')}.zip`
+      } else if (downloadMode === 'single' && currentFileForDownload?.taskId) {
+        blob = await downloadSingleFileFormats(currentFileForDownload.taskId, formats)
+        filename = `${currentFileForDownload.file.name.split('.')[0]}_${formats.join('_')}.zip`
+      } else {
+        return
+      }
+
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `batch_${batchId}.zip`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download failed:', error)
+    }
+  }
+
+  // Handle file preview
+  const handlePreview = async (file: FileItem) => {
+    if (!file.taskId) return
+    try {
+      const content = await getFileContent(file.taskId)
+      setPreviewContent(content)
+      setShowPreviewModal(true)
+    } catch (error) {
+      console.error('Preview failed:', error)
     }
   }
 
@@ -128,6 +179,8 @@ export default function BatchPage() {
                   key={file.id}
                   file={file}
                   onRemove={removeFileById}
+                  onDownload={handleSingleDownload}
+                  onPreview={handlePreview}
                 />
               ))}
             </AnimatePresence>
@@ -169,6 +222,24 @@ export default function BatchPage() {
       <div className="text-center text-neutral-500 py-8">
         <p>需要修改翻译配置？请前往「设置」页面</p>
       </div>
+
+      {/* Format Selection Modal */}
+      <DownloadFormatModal
+        isOpen={showFormatModal}
+        onClose={() => setShowFormatModal(false)}
+        onConfirm={handleDownloadConfirm}
+        selectedFormats={selectedFormats}
+        onFormatChange={setSelectedFormats}
+      />
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        fileName={currentFileForDownload?.file.name}
+        originalContent={previewContent?.original}
+        translatedContent={previewContent?.translated}
+      />
     </div>
   )
 }
