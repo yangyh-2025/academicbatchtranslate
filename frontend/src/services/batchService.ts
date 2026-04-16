@@ -93,3 +93,11 @@ export async function getFileContent(taskId: string): Promise<{ original: string
   const response = await api.get(`/service/content/${taskId}`)
   return response.data
 }
+
+export async function getPDFPreviewContent(taskId: string): Promise<{
+  original_pdf?: string
+  translated_pdf?: string
+}> {
+  const response = await api.get(`/service/preview/pdf/${taskId}`)
+  return response.data
+}

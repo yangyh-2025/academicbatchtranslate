@@ -7,7 +7,7 @@ import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { startBatchStatusPolling } from '@/services/pollingService'
-import { downloadBatchFormats, downloadSingleFileFormats, getFileContent } from '@/services/batchService'
+import { downloadBatchFormats, downloadSingleFileFormats, getFileContent, getPDFPreviewContent } from '@/services/batchService'
 import { BatchUploadZone } from '@/components/batch/BatchUploadZone'
 import { BatchFileCard } from '@/components/batch/BatchFileCard'
 import { BatchFileNameEditor } from '@/components/batch/BatchFileNameEditor'
@@ -51,7 +51,12 @@ export default function BatchPage() {
   const [selectedFormats, setSelectedFormats] = useState<string[]>(['markdown'])
   const [downloadMode, setDownloadMode] = useState<'batch' | 'single'>('batch')
   const [currentFileForDownload, setCurrentFileForDownload] = useState<FileItem | null>(null)
-  const [previewContent, setPreviewContent] = useState<{ original: string; translated: string } | null>(null)
+  const [previewContent, setPreviewContent] = useState<{
+    original: string
+    translated: string
+    originalPdf?: string
+    translatedPdf?: string
+  } | null>(null)
 
   // Handle batch status polling
   useEffect(() => {
@@ -131,7 +136,24 @@ export default function BatchPage() {
   const handlePreview = async (file: FileItem) => {
     if (!file.taskId) return
     try {
-      const content = await getFileContent(file.taskId)
+      // 并行获取文本和PDF预览内容
+      const [textContent, pdfContent] = await Promise.allSettled([
+        getFileContent(file.taskId),
+        getPDFPreviewContent(file.taskId)
+      ])
+
+      const content: {
+        original: string
+        translated: string
+        originalPdf?: string
+        translatedPdf?: string
+      } = {
+        original: textContent.status === 'fulfilled' ? textContent.value.original : '',
+        translated: textContent.status === 'fulfilled' ? textContent.value.translated : '',
+        originalPdf: pdfContent.status === 'fulfilled' ? pdfContent.value.original_pdf : undefined,
+        translatedPdf: pdfContent.status === 'fulfilled' ? pdfContent.value.translated_pdf : undefined,
+      }
+
       setPreviewContent(content)
       setShowPreviewModal(true)
     } catch (error) {
@@ -239,6 +261,8 @@ export default function BatchPage() {
         fileName={currentFileForDownload?.file.name}
         originalContent={previewContent?.original}
         translatedContent={previewContent?.translated}
+        originalPdf={previewContent?.originalPdf}
+        translatedPdf={previewContent?.translatedPdf}
       />
     </div>
   )

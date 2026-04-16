@@ -741,6 +741,24 @@ async def service_get_file_content(
 
 
 @service_router.get(
+    "/preview/pdf/{task_id}",
+    summary="获取PDF预览内容",
+    description="获取任务的原文PDF和译文PDF用于预览（Base64编码）。",
+)
+async def service_get_pdf_preview(
+    task_id: str = FastApiPath(..., description="任务ID", examples=["b2865b93"]),
+):
+    """Get PDF preview content for a task."""
+    content = await translation_service.get_pdf_preview_content(task_id)
+    if content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"任务 '{task_id}' 不存在或无法获取PDF内容。",
+        )
+    return JSONResponse(content=content)
+
+
+@service_router.get(
     "/attachment/{task_id}/{identifier}",
     summary="下载附件文件",
     description="根据任务ID和附件标识符下载在翻译过程中生成的附加文件，例如自动生成的术语表。",

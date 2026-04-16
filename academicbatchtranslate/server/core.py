@@ -547,6 +547,13 @@ class TranslationService:
             task_logger.info("翻译完成，正在生成临时结果文件...")
             temp_dir = tempfile.mkdtemp(prefix=f"academicbatchtranslate_{task_id}_")
             task_state["temp_dir"] = temp_dir
+
+            # 保存原始文件内容到临时目录
+            original_file_path = os.path.join(temp_dir, f"original_{original_filename}")
+            with open(original_file_path, 'wb') as f:
+                f.write(file_contents)
+            task_state["original_file_path"] = original_file_path
+
             downloadable_files = {}
             filename_stem = task_state["original_filename_stem"]
 
@@ -1802,6 +1809,50 @@ class TranslationService:
             if md_path and os.path.exists(md_path):
                 with open(md_path, 'r', encoding='utf-8') as f:
                     result["translated"] = f.read()
+
+        return result
+
+    async def get_pdf_preview_content(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """
+        获取原文PDF和译文PDF用于预览。
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            Dictionary with 'original_pdf' and 'translated_pdf' as base64 strings
+        """
+        import base64
+
+        task_state = self.get_task_state(task_id)
+        if not task_state:
+            return None
+
+        result = {"original_pdf": None, "translated_pdf": None}
+        downloadable_files = task_state.get("downloadable_files", {})
+
+        # 获取译文PDF（从HTML或Markdown生成）
+        if "html" in downloadable_files:
+            html_path = downloadable_files["html"].get("path")
+            if html_path and os.path.exists(html_path):
+                pdf_bytes = await self._html_to_pdf(html_path)
+                if pdf_bytes:
+                    result["translated_pdf"] = base64.b64encode(pdf_bytes).decode("utf-8")
+        elif "markdown" in downloadable_files:
+            md_path = downloadable_files["markdown"].get("path")
+            if md_path and os.path.exists(md_path):
+                pdf_bytes = await self._markdown_to_pdf(md_path)
+                if pdf_bytes:
+                    result["translated_pdf"] = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        # 获取原文PDF（如果原始文件是PDF）
+        original_file_path = task_state.get("original_file_path")
+        if original_file_path and os.path.exists(original_file_path):
+            # 检查是否为PDF文件
+            if original_file_path.lower().endswith('.pdf'):
+                with open(original_file_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                    result["original_pdf"] = base64.b64encode(pdf_bytes).decode("utf-8")
 
         return result
 
