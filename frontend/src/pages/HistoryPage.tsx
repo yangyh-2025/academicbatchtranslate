@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import type { BatchStatus } from '@/types/api'
 import { getBatchList, downloadBatchZip, releaseBatch, type BatchListResponse } from '@/services/batchService'
 
 export default function HistoryPage() {
