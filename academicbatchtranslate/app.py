@@ -1004,6 +1004,21 @@ async def service_get_batch_status(
     return JSONResponse(content=batch_state)
 
 
+@service_router.get(
+    "/batch-list",
+    summary="获取批量任务列表",
+    description="返回所有批量任务的概要信息，按创建时间倒序排列。",
+    responses={
+        200: {
+            "description": "成功返回批量任务列表。",
+        }
+    },
+)
+async def service_list_batches():
+    """Get list of all batch tasks."""
+    batches = translation_service.list_batches()
+    return JSONResponse(content=batches)
+
 
 @service_router.post(
     "/release/batch/{batch_id}",

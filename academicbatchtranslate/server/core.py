@@ -1527,6 +1527,54 @@ class TranslationService:
             "tasks": tasks_info,
         }
 
+    def list_batches(self) -> List[Dict[str, Any]]:
+        """List all batch tasks with summary information."""
+        batches_list = []
+
+        for batch_id, batch_state in self.batch_tasks_state.items():
+            task_ids = batch_state.get("task_ids", [])
+            if not task_ids:
+                continue
+
+            completed_count = 0
+            error_count = 0
+            processing_count = 0
+
+            for task_id in task_ids:
+                task_state = self.get_task_state(task_id)
+                if task_state:
+                    if task_state.get("download_ready"):
+                        completed_count += 1
+                    elif task_state.get("error_flag"):
+                        error_count += 1
+                    elif task_state.get("is_processing"):
+                        processing_count += 1
+
+            total_count = len(task_ids)
+            overall_progress = int((completed_count + error_count) / total_count * 100) if total_count > 0 else 0
+            all_completed = completed_count + error_count == total_count
+
+            if all_completed:
+                status = "completed" if error_count == 0 else "partial"
+            elif processing_count > 0:
+                status = "processing"
+            else:
+                status = "failed"
+
+            batches_list.append({
+                "batch_id": batch_id,
+                "status": status,
+                "total_files": total_count,
+                "completed_files": completed_count,
+                "failed_files": error_count,
+                "processing_files": processing_count,
+                "overall_progress": overall_progress,
+                "started_at": batch_state.get("started_at", 0),
+            })
+
+        batches_list.sort(key=lambda x: x["started_at"], reverse=True)
+        return batches_list
+
     async def get_batch_zip(self, batch_id: str) -> Optional[bytes]:
         """
         Get all completed files from a batch as a ZIP archive.

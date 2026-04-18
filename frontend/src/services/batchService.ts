@@ -63,6 +63,22 @@ export async function getBatchStatus(batchId: string): Promise<BackendBatchStatu
   return response.data
 }
 
+export interface BatchListResponse {
+  batch_id: string
+  status: 'processing' | 'completed' | 'partial' | 'failed'
+  total_files: number
+  completed_files: number
+  failed_files: number
+  processing_files: number
+  overall_progress: number
+  started_at: number
+}
+
+export async function getBatchList(): Promise<BatchListResponse[]> {
+  const response = await api.get('/service/batch-list')
+  return response.data
+}
+
 export async function downloadBatchZip(batchId: string): Promise<Blob> {
   const response = await api.get(`/service/download/batch/${batchId}`, {
     responseType: 'blob',
