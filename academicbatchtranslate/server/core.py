@@ -435,6 +435,7 @@ class TranslationService:
                 "temp_dir": None,
                 "downloadable_files": {},
                 "attachment_files": {},
+                "payload": payload,
             }
         )
 
@@ -1204,16 +1205,21 @@ class TranslationService:
             prefix = getattr(payload, "output_filename_prefix", "") or ""
             suffix = getattr(payload, "output_filename_suffix", "_translated") or "_translated"
             custom_name = getattr(payload, "output_filename_custom", None)
+            print(f"[DEBUG] _format_filename: original_stem={original_stem}, prefix={repr(prefix)}, suffix={repr(suffix)}, custom_name={custom_name}")
 
         if custom_name:
             # 使用自定义文件名，支持占位符
             timestamp = str(int(time.time()))
             name = custom_name.replace("{original}", original_stem)
             name = name.replace("{timestamp}", timestamp)
-            return f"{name}{extension}"
+            result = f"{name}{extension}"
+            print(f"[DEBUG] _format_filename result (custom): {result}")
+            return result
         else:
             # 使用前缀和后缀
-            return f"{prefix}{original_stem}{suffix}{extension}"
+            result = f"{prefix}{original_stem}{suffix}{extension}"
+            print(f"[DEBUG] _format_filename result (prefix/suffix): {result}")
+            return result
 
     def _build_export_map(
         self,
@@ -1454,6 +1460,7 @@ class TranslationService:
             "task_ids": [],
             "started_at": time.time(),
             "total_files": len(files),
+            "payload": payload,
         }
 
         # Start each file as a separate task
@@ -1635,6 +1642,9 @@ class TranslationService:
         if not task_ids_to_process:
             return None
 
+        # Get payload from batch state for filename generation
+        batch_payload = batch_state.get("payload")
+
         import zipfile
         from io import BytesIO
 
@@ -1650,32 +1660,97 @@ class TranslationService:
                     # Add requested formats
                     for file_type in formats:
                         if file_type == "pdf":
-                            # 优先使用已生成的PDF
+                            # 优先使用已生成的PDF，使用batch payload格式化文件名
                             if "pdf" in downloadable_files:
                                 file_info = downloadable_files["pdf"]
                                 pdf_path = file_info.get("path")
                                 if pdf_path and os.path.exists(pdf_path):
+                                    # 使用batch payload来生成正确的文件名
+                                    pdf_filename = self._format_filename(filename_stem, ".pdf", batch_payload)
                                     with open(pdf_path, 'rb') as f:
-                                        zipf.writestr(f"{filename_stem}.pdf", f.read())
+                                        zipf.writestr(pdf_filename, f.read())
                             else:
-                                # 回退：动态生成PDF
+                                # 回退：动态生成PDF，使用配置的文件名
                                 pdf_content = await self._generate_pdf_for_task(task_id, task_state)
                                 if pdf_content:
-                                    zipf.writestr(f"{filename_stem}.pdf", pdf_content)
+                                    # 使用batch payload来生成正确的文件名
+                                    pdf_filename = self._format_filename(filename_stem, ".pdf", batch_payload)
+                                    zipf.writestr(pdf_filename, pdf_content)
                         elif file_type in downloadable_files:
-                            # Get existing file
+                            # Get existing file and use payload to format filename
                             file_info = downloadable_files[file_type]
                             file_path = file_info.get("path")
-                            filename = file_info.get("filename")
                             if file_path and os.path.exists(file_path):
                                 try:
+                                    # 使用batch payload重新格式化文件名，确保前缀和后缀正确
+                                    ext = f".{file_type}" if file_type != "markdown_zip" else ".zip"
+                                    formatted_filename = self._format_filename(filename_stem, ext, batch_payload)
                                     with open(file_path, 'rb') as f:
-                                        zipf.writestr(filename, f.read())
+                                        zipf.writestr(formatted_filename, f.read())
                                 except Exception as e:
-                                    print(f"[Batch {batch_id}] Failed to add {filename} to ZIP: {e}")
+                                    print(f"[Batch {batch_id}] Failed to add file to ZIP: {e}")
 
         zip_buffer.seek(0)
         return zip_buffer.getvalue()
+
+    def get_single_file_content(self, task_id: str, file_format: str) -> Optional[Dict[str, Any]]:
+        """
+        Get single file content for direct download (not ZIP).
+
+        Args:
+            task_id: Task ID
+            file_format: File format to download (e.g., 'markdown', 'docx', 'pdf')
+
+        Returns:
+            Dictionary with 'content' (bytes), 'filename' (str), 'media_type' (str), or None if not found
+        """
+        task_state = self.get_task_state(task_id)
+        if not task_state or not task_state.get("download_ready"):
+            return None
+
+        downloadable_files = task_state.get("downloadable_files", {})
+        filename_stem = task_state.get("original_filename_stem", task_id)
+        payload = task_state.get("payload")
+
+        # Map file format to media type
+        media_types = {
+            "markdown": "text/markdown",
+            "md": "text/markdown",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "pdf": "application/pdf",
+            "html": "text/html",
+            "txt": "text/plain",
+        }
+
+        if file_format == "pdf":
+            # Check if PDF is already generated
+            if "pdf" in downloadable_files:
+                file_info = downloadable_files["pdf"]
+                pdf_path = file_info.get("path")
+                if pdf_path and os.path.exists(pdf_path):
+                    # Use payload to format filename with correct prefix/suffix
+                    filename = self._format_filename(filename_stem, ".pdf", payload)
+                    with open(pdf_path, 'rb') as f:
+                        return {
+                            "content": f.read(),
+                            "filename": filename,
+                            "media_type": media_types.get("pdf", "application/pdf"),
+                        }
+        elif file_format in downloadable_files:
+            file_info = downloadable_files[file_format]
+            file_path = file_info.get("path")
+            if file_path and os.path.exists(file_path):
+                # Use payload to format filename with correct prefix/suffix
+                ext = f".{file_format}" if file_format != "markdown_zip" else ".zip"
+                filename = self._format_filename(filename_stem, ext, payload)
+                with open(file_path, 'rb') as f:
+                    return {
+                        "content": f.read(),
+                        "filename": filename,
+                        "media_type": media_types.get(file_format, "application/octet-stream"),
+                    }
+
+        return None
 
     async def _generate_pdf_for_task(self, task_id: str, task_state: Dict[str, Any]) -> Optional[bytes]:
         """

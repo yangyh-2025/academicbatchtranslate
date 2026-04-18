@@ -759,6 +759,32 @@ async def service_get_pdf_preview(
 
 
 @service_router.get(
+    "/download/{task_id}/{file_format}",
+    summary="直接下载单个文件",
+    description="直接下载单个任务的指定格式文件（不打包为ZIP）。",
+)
+async def service_download_single_file(
+    task_id: str = FastApiPath(..., description="任务ID", examples=["b2865b93"]),
+    file_format: str = FastApiPath(..., description="文件格式", examples=["markdown", "docx", "pdf"]),
+):
+    """Download single file content directly (not as ZIP)."""
+    result = translation_service.get_single_file_content(task_id, file_format)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"任务 '{task_id}' 不存在或格式 '{file_format}' 不可用。",
+        )
+
+    return Response(
+        content=result["content"],
+        media_type=result["media_type"],
+        headers={
+            "Content-Disposition": f"attachment; filename={result['filename']}"
+        }
+    )
+
+
+@service_router.get(
     "/attachment/{task_id}/{identifier}",
     summary="下载附件文件",
     description="根据任务ID和附件标识符下载在翻译过程中生成的附加文件，例如自动生成的术语表。",

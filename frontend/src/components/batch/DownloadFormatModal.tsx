@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2025 YangYuhang
 // SPDX-License-Identifier: MPL-2.0
 
-import { Checkbox } from '@/components/ui/Checkbox'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
 import { createPortal } from 'react-dom'
@@ -12,6 +11,7 @@ export interface DownloadFormatModalProps {
   onConfirm: (formats: string[]) => void
   selectedFormats: string[]
   onFormatChange: (formats: string[]) => void
+  mode?: 'batch' | 'single'
 }
 
 const formatOptions = [
@@ -26,12 +26,16 @@ export function DownloadFormatModal({
   onConfirm,
   selectedFormats,
   onFormatChange,
+  mode = 'batch',
 }: DownloadFormatModalProps) {
+  const isSingleMode = mode === 'single'
+
   const handleFormatToggle = (formatId: string) => {
-    const newFormats = selectedFormats.includes(formatId)
-      ? selectedFormats.filter((f) => f !== formatId)
-      : [...selectedFormats, formatId]
-    onFormatChange(newFormats)
+    if (selectedFormats.includes(formatId)) {
+      onFormatChange(selectedFormats.filter(f => f !== formatId))
+    } else {
+      onFormatChange([...selectedFormats, formatId])
+    }
   }
 
   const handleConfirm = () => {
@@ -57,27 +61,52 @@ export function DownloadFormatModal({
         <div className="px-6 py-4 border-b border-neutral-200">
           <h3 className="text-lg font-semibold">选择下载格式</h3>
           <p className="text-sm text-neutral-500 mt-1">
-            可以选择多种格式，将打包为ZIP下载
+            {isSingleMode
+              ? '选择格式（选多个将打包为ZIP，选一个直接下载文件）'
+              : '可以选择多种格式，将打包为ZIP下载'
+            }
           </p>
         </div>
         <div className="p-6 space-y-3">
           {formatOptions.map((option) => (
-            <Checkbox
+            <div
               key={option.id}
-              checked={selectedFormats.includes(option.id)}
-              onChange={() => handleFormatToggle(option.id)}
-              className="w-full p-3 rounded-lg border border-neutral-200 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+              onClick={() => handleFormatToggle(option.id)}
+              className={cn(
+                'w-full p-3 rounded-lg border cursor-pointer transition-colors',
+                'border-neutral-200 hover:border-primary/30 hover:bg-primary/5',
+                selectedFormats.includes(option.id) && 'border-primary bg-primary/10'
+              )}
             >
-              <div className="flex-1">
-                <div className="font-medium text-neutral-900">{option.label}</div>
-                <div className="text-xs text-neutral-500 mt-0.5">
-                  {option.description}
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    'w-5 h-5 rounded border-2 flex items-center justify-center',
+                    'border-gray-300',
+                    selectedFormats.includes(option.id) && 'border-primary bg-primary'
+                  )}
+                >
+                  {selectedFormats.includes(option.id) && (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-8-8a1 1 0 011.414 0L10 14.586l6.293-6.293a1 1 0 011.414-1.414l-7 7z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-neutral-900">{option.label}</div>
+                  <div className="text-xs text-neutral-500 mt-0.5">
+                    {option.description}
+                  </div>
                 </div>
               </div>
-            </Checkbox>
+            </div>
           ))}
           {selectedFormats.length === 0 && (
-            <p className="text-sm text-danger">请至少选择一种格式</p>
+            <p className="text-sm text-danger">请选择一种格式</p>
           )}
         </div>
         <div className="px-6 py-4 border-t border-neutral-200 flex gap-3">
@@ -94,7 +123,7 @@ export function DownloadFormatModal({
             disabled={selectedFormats.length === 0}
             className="flex-1"
           >
-            确认下载 ({selectedFormats.length})
+            确认下载
           </Button>
         </div>
       </div>

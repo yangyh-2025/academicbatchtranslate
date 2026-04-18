@@ -29,7 +29,9 @@ const initialPayload: Partial<TranslatePayload> = {
   system_proxy_enable: false,
   glossary_generate_enable: false,
   force_json: false,
+  output_filename_prefix: '',
   output_filename_suffix: '_translated',
+  output_filename_custom: '',
 }
 
 export const useConfigStore = create<ConfigState>()(

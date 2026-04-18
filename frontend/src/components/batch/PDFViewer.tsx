@@ -6,12 +6,9 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/TextLayer.css'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 
-// 配置 PDF.js worker 使用来自 node_modules 的正确文件
-// react-pdf v9+ 需要显式配置 worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString()
+// 配置 PDF.js worker
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
 interface PDFViewerProps {
   pdfData: string  // Base64 encoded PDF
@@ -20,13 +17,11 @@ interface PDFViewerProps {
 
 export function PDFViewer({ pdfData, className = '' }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setNumPages(null)
-    setCurrentPage(1)
     setPdfError(null)
     setLoading(true)
   }, [pdfData])
@@ -56,55 +51,37 @@ export function PDFViewer({ pdfData, className = '' }: PDFViewerProps) {
 
   return (
     <div className={className}>
-      <div className="flex-1 overflow-auto p-4 bg-gray-50 relative">
-        {loading && !pdfError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">正在加载PDF...</p>
-            </div>
+      {loading && !pdfError && (
+        <div className="h-full flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">正在加载PDF...</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {pdfError && (
-          <div className="flex items-center justify-center h-full text-red-500">
-            {pdfError}
-          </div>
-        )}
+      {pdfError && (
+        <div className="h-full flex items-center justify-center text-red-500">
+          {pdfError}
+        </div>
+      )}
 
-        {!pdfError && (
-          <div className="flex justify-center">
-            <Document
-              file={pdfUrl}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              className="shadow-lg"
-            >
-              <Page pageNumber={currentPage} />
-            </Document>
-          </div>
-        )}
-      </div>
-
-      {numPages && numPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2 bg-white border-t border-gray-200 flex-shrink-0">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      {!pdfError && !loading && (
+        <div className="h-full overflow-auto p-4 bg-gray-50">
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
           >
-            上一页
-          </button>
-          <span className="text-sm text-gray-600">
-            第 {currentPage} / {numPages} 页
-          </span>
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(numPages, prev + 1))}
-            disabled={currentPage === numPages}
-            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            下一页
-          </button>
+            {numPages !== null && Array.from({ length: numPages }, (_, i) => i + 1).map((pageNumber) => (
+              <div key={pageNumber} className="flex justify-center mb-4">
+                  <Page
+                    pageNumber={pageNumber}
+                    className="shadow-lg"
+                  />
+              </div>
+            ))}
+          </Document>
         </div>
       )}
     </div>

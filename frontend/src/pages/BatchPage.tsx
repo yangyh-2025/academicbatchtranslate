@@ -7,7 +7,7 @@ import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { startBatchStatusPolling } from '@/services/pollingService'
-import { downloadBatchFormats, downloadSingleFileFormats, getFileContent, getPDFPreviewContent } from '@/services/batchService'
+import { downloadBatchFormats, downloadSingleFileFormats, downloadSingleFileContent, getFileContent, getPDFPreviewContent } from '@/services/batchService'
 import { BatchUploadZone } from '@/components/batch/BatchUploadZone'
 import { BatchFileCard } from '@/components/batch/BatchFileCard'
 import { BatchFileNameEditor } from '@/components/batch/BatchFileNameEditor'
@@ -100,6 +100,25 @@ export default function BatchPage() {
     setShowFormatModal(true)
   }
 
+  // Handle single file direct download (without modal)
+  const handleDirectDownload = async (file: FileItem, format: string) => {
+    if (!file.taskId) return
+
+    try {
+      const response = await downloadSingleFileContent(file.taskId, format)
+      const url = URL.createObjectURL(response.blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = response.filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Direct download failed:', error)
+    }
+  }
+
   // Confirm download with selected formats
   const handleDownloadConfirm = async (formats: string[]) => {
     setShowFormatModal(false)
@@ -113,6 +132,12 @@ export default function BatchPage() {
         blob = await downloadBatchFormats(batchId, formats)
         filename = `batch_${batchId}_${formats.join('_')}.zip`
       } else if (downloadMode === 'single' && currentFileForDownload?.taskId) {
+        // Single file: if only one format selected, download directly as file
+        if (formats.length === 1 && formats[0]) {
+          await handleDirectDownload(currentFileForDownload, formats[0])
+          return
+        }
+        // Multiple formats: download as ZIP
         blob = await downloadSingleFileFormats(currentFileForDownload.taskId, formats)
         filename = `${currentFileForDownload.file.name.split('.')[0]}_${formats.join('_')}.zip`
       } else {
@@ -259,8 +284,6 @@ export default function BatchPage() {
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
         fileName={currentFileForDownload?.file.name}
-        originalContent={previewContent?.original}
-        translatedContent={previewContent?.translated}
         originalPdf={previewContent?.originalPdf}
         translatedPdf={previewContent?.translatedPdf}
       />

@@ -117,3 +117,19 @@ export async function getPDFPreviewContent(taskId: string): Promise<{
   const response = await api.get(`/service/preview/pdf/${taskId}`)
   return response.data
 }
+
+export async function downloadSingleFileContent(taskId: string, format: string): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get(`/service/download/${taskId}/${format}`, {
+    responseType: 'blob',
+  })
+  // Extract filename from Content-Disposition header
+  const contentDisposition = response.headers['content-disposition']
+  let filename = `download.${format}`
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/)
+    if (filenameMatch) {
+      filename = filenameMatch[1]
+    }
+  }
+  return { blob: response.data, filename }
+}
