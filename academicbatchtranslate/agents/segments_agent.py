@@ -66,9 +66,9 @@ Please return the translated JSON directly without including any additional info
 
 
 def get_original_segments(prompt: str):
-    match = re.search(r'<input>\n```json\n(.*)\n```\n</input>', prompt, re.DOTALL)
+    match = re.search(r'<input>\s*```json\s*(.*?)\s*```\s*</input>', prompt, re.DOTALL)
     if match:
-        return match.group(1)
+        return match.group(1).strip()
     else:
         raise ValueError("无法从prompt中提取初始文本")
 

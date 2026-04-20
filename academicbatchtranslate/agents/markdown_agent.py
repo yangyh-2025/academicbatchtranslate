@@ -9,9 +9,9 @@ from ..glossary.glossary import Glossary
 
 
 def get_original_markdown(prompt: str):
-    match = re.search(r'<input>\n(.*)\n</input>', prompt, re.DOTALL)
+    match = re.search(r'<input>\s*(.*?)\s*</input>', prompt, re.DOTALL)
     if match:
-        return match.group(1)
+        return match.group(1).strip()
     else:
         raise ValueError("无法从prompt中提取初始文本")
 
