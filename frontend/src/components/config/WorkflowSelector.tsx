@@ -41,7 +41,7 @@ export function WorkflowSelector({ value, onChange }: WorkflowSelectorProps) {
                 'flex flex-col items-start gap-3 p-4 rounded-xl border-2 transition-all',
                 isSelected
                   ? 'border-primary bg-primary-light/10 ring-2 ring-primary/20'
-                  : 'border-neutral-200 bg-white hover:border-primary-light hover:shadow-warm'
+                  : 'border-neutral-200 bg-white hover:border-primary-light hover:shadow-blue'
               )}
             >
               <div className={cn(

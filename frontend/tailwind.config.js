@@ -12,9 +12,9 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FFC107',
-          light: '#FFB300',
-          dark: '#FFA000',
+          DEFAULT: '#2563EB',
+          light: '#3B82F6',
+          dark: '#1D4ED8',
         },
         secondary: {
           DEFAULT: '#F4511E',
@@ -52,8 +52,8 @@ export default {
         '2xl': '1.5rem',
       },
       boxShadow: {
-        'warm': '0 4px 6px -1px rgba(255, 177, 0, 0.1), 0 2px 4px -2px rgba(255, 177, 0, 0.1)',
-        'warm-lg': '0 10px 15px -3px rgba(255, 177, 0, 0.1), 0 4px 6px -4px rgba(255, 177, 0, 0.1)',
+        'blue': '0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -2px rgba(37, 99, 235, 0.1)',
+        'blue-lg': '0 10px 15px -3px rgba(37, 99, 235, 0.1), 0 4px 6px -4px rgba(37, 99, 235, 0.1)',
       },
     },
   },
