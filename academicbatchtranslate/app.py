@@ -765,10 +765,10 @@ async def service_get_pdf_preview(
 )
 async def service_download_single_file(
     task_id: str = FastApiPath(..., description="任务ID", examples=["b2865b93"]),
-    file_format: str = FastApiPath(..., description="文件格式", examples=["markdown", "docx", "pdf"]),
+    file_format: str = FastApiPath(..., description="文件格式", examples=["markdown", "docx", "pdf", "pdf_premium"]),
 ):
     """Download single file content directly (not as ZIP)."""
-    result = translation_service.get_single_file_content(task_id, file_format)
+    result = await translation_service.get_single_file_content(task_id, file_format)
     if result is None:
         raise HTTPException(
             status_code=404,

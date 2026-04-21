@@ -1676,6 +1676,21 @@ class TranslationService:
                                     # 使用batch payload来生成正确的文件名
                                     pdf_filename = self._format_filename(filename_stem, ".pdf", batch_payload)
                                     zipf.writestr(pdf_filename, pdf_content)
+                        elif file_type == "pdf_premium":
+                            # 高级版PDF（无推广）
+                            if "pdf_premium" in downloadable_files:
+                                file_info = downloadable_files["pdf_premium"]
+                                pdf_path = file_info.get("path")
+                                if pdf_path and os.path.exists(pdf_path):
+                                    pdf_filename = self._format_filename(filename_stem, "_premium.pdf", batch_payload)
+                                    with open(pdf_path, 'rb') as f:
+                                        zipf.writestr(pdf_filename, f.read())
+                            else:
+                                # 动态生成生成高级版PDF
+                                pdf_content = await self._generate_pdf_for_task(task_id, task_state, premium=True)
+                                if pdf_content:
+                                    pdf_filename = self._format_filename(filename_stem, "_premium.pdf", batch_payload)
+                                    zipf.writestr(pdf_filename, pdf_content)
                         elif file_type in downloadable_files:
                             # Get existing file and use payload to format filename
                             file_info = downloadable_files[file_type]
@@ -1693,7 +1708,7 @@ class TranslationService:
         zip_buffer.seek(0)
         return zip_buffer.getvalue()
 
-    def get_single_file_content(self, task_id: str, file_format: str) -> Optional[Dict[str, Any]]:
+    async def get_single_file_content(self, task_id: str, file_format: str) -> Optional[Dict[str, Any]]:
         """
         Get single file content for direct download (not ZIP).
 
@@ -1718,6 +1733,7 @@ class TranslationService:
             "md": "text/markdown",
             "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "pdf": "application/pdf",
+            "pdf_premium": "application/pdf",
             "html": "text/html",
             "txt": "text/plain",
         }
@@ -1736,6 +1752,28 @@ class TranslationService:
                             "filename": filename,
                             "media_type": media_types.get("pdf", "application/pdf"),
                         }
+        elif file_format == "pdf_premium":
+            # Check if premium PDF is already generated
+            if "pdf_premium" in downloadable_files:
+                file_info = downloadable_files["pdf_premium"]
+                pdf_path = file_info.get("path")
+                if pdf_path and os.path.exists(pdf_path):
+                    filename = self._format_filename(filename_stem, "_premium.pdf", payload)
+                    with open(pdf_path, 'rb') as f:
+                        return {
+                            "content": f.read(),
+                            "filename": filename,
+                            "media_type": media_types.get("pdf_premium", "application/pdf"),
+                        }
+            # Generate premium PDF on demand
+            pdf_content = await self._generate_pdf_for_task(task_id, task_state, premium=True)
+            if pdf_content:
+                filename = self._format_filename(filename_stem, "_premium.pdf", payload)
+                return {
+                    "content": pdf_content,
+                    "filename": filename,
+                    "media_type": media_types.get("pdf_premium", "application/pdf"),
+                }
         elif file_format in downloadable_files:
             file_info = downloadable_files[file_format]
             file_path = file_info.get("path")
@@ -1752,13 +1790,14 @@ class TranslationService:
 
         return None
 
-    async def _generate_pdf_for_task(self, task_id: str, task_state: Dict[str, Any]) -> Optional[bytes]:
+    async def _generate_pdf_for_task(self, task_id: str, task_state: Dict[str, Any], premium: bool = False) -> Optional[bytes]:
         """
         Generate PDF for a task from HTML or Markdown.
 
         Args:
             task_id: Task ID
             task_state: Task state dictionary
+            premium: If True, generate premium PDF without promo text
 
         Returns:
             PDF content as bytes, or None if generation fails
@@ -1769,12 +1808,19 @@ class TranslationService:
         if "html" in downloadable_files:
             html_path = downloadable_files["html"]["path"]
             if os.path.exists(html_path):
+                if premium:
+                    # Re-generate HTML with premium template
+                    md_path = downloadable_files.get("markdown", {}).get("path")
+                    if md_path and os.path.exists(md_path):
+                        return await self._markdown_to_premium_pdf(md_path)
                 return await self._html_to_pdf(html_path)
 
         # Try Markdown as fallback
         if "markdown" in downloadable_files:
             md_path = downloadable_files["markdown"]["path"]
             if os.path.exists(md_path):
+                if premium:
+                    return await self._markdown_to_premium_pdf(md_path)
                 return await self._markdown_to_pdf(md_path)
 
         return None
@@ -1922,6 +1968,62 @@ class TranslationService:
                 return pdf_bytes
         except Exception as e:
             print(f"Markdown到PDF转换失败: {e}")
+            return None
+
+    async def _markdown_to_premium_pdf(self, md_path: str) -> Optional[bytes]:
+        """
+        Convert Markdown to premium PDF (without promo text) using Playwright.
+
+        Args:
+            md_path: Path to Markdown file
+
+        Returns:
+            PDF content as bytes, or None if conversion fails
+        """
+        # 确保浏览器已安装
+        if not self._ensure_playwright_browsers():
+            print("无法安装Playwright浏览器，PDF生成失败")
+            return None
+
+        try:
+            from academicbatchtranslate.ir.markdown_document import MarkdownDocument
+            from academicbatchtranslate.exporter.md.md2html_exporter import MD2HTMLExporter, MD2HTMLExporterConfig
+
+            # Read Markdown file
+            with open(md_path, 'rb') as f:
+                md_content = f.read()
+
+            # Create Markdown document
+            from pathlib import Path
+            md_doc = MarkdownDocument.from_bytes(md_content, suffix=".md", stem=Path(md_path).stem)
+
+            # Convert to HTML using premium template
+            premium_config = MD2HTMLExporterConfig(cdn=True, premium=True)
+            exporter = MD2HTMLExporter(config=premium_config)
+            html_doc = exporter.export(md_doc)
+            html_content = html_doc.content.decode('utf-8')
+
+            # Generate PDF using Playwright
+            from playwright.async_api import async_playwright
+
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+
+                # Load HTML content
+                await page.set_content(html_content)
+
+                # Generate PDF
+                pdf_bytes = await page.pdf(
+                    format="A4",
+                    margin={"top": "1cm", "right": "1cm", "bottom": "1cm", "left": "1cm"},
+                    print_background=True
+                )
+
+                await browser.close()
+                return pdf_bytes
+        except Exception as e:
+            print(f"Markdown到高级版PDF转换失败: {e}")
             return None
 
     def get_file_content(self, task_id: str) -> Optional[Dict[str, str]]:

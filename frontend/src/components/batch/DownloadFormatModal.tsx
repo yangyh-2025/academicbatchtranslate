@@ -18,6 +18,7 @@ const formatOptions = [
   { id: 'markdown', label: 'Markdown', description: '.md 格式，轻量级文本标记' },
   { id: 'docx', label: 'DOCX', description: '.docx 格式，Microsoft Word 文档' },
   { id: 'pdf', label: 'PDF', description: '.pdf 格式，便携式文档' },
+  { id: 'pdf_premium', label: 'PDF 高级版', description: '.pdf 格式，纯净版无推广信息' },
 ]
 
 export function DownloadFormatModal({

@@ -12,6 +12,7 @@ from academicbatchtranslate.utils.resource_utils import resource_path
 @dataclass
 class MD2HTMLExporterConfig(MDExporterConfig):
     cdn: bool = True
+    premium: bool = False
 
 
 # 预读取本地静态文件（加速）
@@ -32,7 +33,8 @@ class MD2HTMLExporter(MDExporter):
         self.cdn = config.cdn
 
     def export(self, document: MarkdownDocument) -> Document:
-        html_template = resource_path("template/markdown.html").read_text(encoding="utf-8")
+        template_name = "markdown_premium.html" if self.config.premium else "markdown.html"
+        html_template = resource_path(f"template/{template_name}").read_text(encoding="utf-8")
 
         cdn_base = "https://s4.zstatic.net/ajax/libs"
 
