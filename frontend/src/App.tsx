@@ -4,12 +4,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import BatchPage from '@/pages/BatchPage'
 import GlossaryPage from '@/pages/GlossaryPage'
 import SettingsPage from '@/pages/SettingsPage'
 import HistoryPage from '@/pages/HistoryPage'
+import { useConfigStore } from '@/stores/configStore'
+import { getDefaultParams } from '@/services/configService'
 
 // Sidebar 内部组件，使用 React Router 的 navigate
 function SidebarWrapper() {
@@ -50,6 +53,22 @@ function PageTransition({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { updatePayload } = useConfigStore()
+
+  // Load initial config from backend on mount
+  useEffect(() => {
+    const loadInitialConfig = async () => {
+      try {
+        const defaultParams = await getDefaultParams()
+        // Merge backend defaults into config store
+        updatePayload(defaultParams as any)
+      } catch (error) {
+        console.error('Failed to load initial config:', error)
+      }
+    }
+    loadInitialConfig()
+  }, [updatePayload])
+
   return (
     <QueryClientProvider client={queryClient}>
       <HashRouter>

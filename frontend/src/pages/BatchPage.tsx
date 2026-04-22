@@ -7,16 +7,16 @@ import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { startBatchStatusPolling } from '@/services/pollingService'
-import { downloadBatchFormats, downloadSingleFileFormats, downloadSingleFileContent, getFileContent, getPDFPreviewContent } from '@/services/batchService'
+import { downloadBatchFormats, downloadSingleFileContent, getFileContent, getPDFPreviewContent } from '@/services/batchService'
 import { BatchUploadZone } from '@/components/batch/BatchUploadZone'
 import { BatchFileCard } from '@/components/batch/BatchFileCard'
 import { BatchFileNameEditor } from '@/components/batch/BatchFileNameEditor'
 import { BatchProgressOverview } from '@/components/batch/BatchProgressOverview'
-import { DownloadFormatModal } from '@/components/batch/DownloadFormatModal'
 import { FilePreviewModal } from '@/components/batch/FilePreviewModal'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { AnimatePresence } from 'framer-motion'
+import { cn } from '@/utils/cn'
 import type { FileItem } from '@/stores/filesStore'
 
 // Backend batch status response format
@@ -40,17 +40,19 @@ interface BackendBatchStatus {
   }>
 }
 
+const formatOptions = [
+  { id: 'pdf', label: 'PDF', description: '标准版，含推广信息' },
+  { id: 'pdf_premium', label: 'PDF 高级版', description: '纯净版，无推广信息' },
+]
+
 export default function BatchPage() {
   const { files, removeFileById, startBatchUpload } = useFileUpload()
   const { payload } = useConfigStore()
   const { batchId, setProcessing, updateBatchStatus } = useProgressStore()
 
   // Modal states
-  const [showFormatModal, setShowFormatModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
-  const [selectedFormats, setSelectedFormats] = useState<string[]>(['markdown'])
-  const [downloadMode, setDownloadMode] = useState<'batch' | 'single'>('batch')
-  const [currentFileForDownload, setCurrentFileForDownload] = useState<FileItem | null>(null)
+  const [selectedFormat, setSelectedFormat] = useState<string>('pdf')
   const [previewContent, setPreviewContent] = useState<{
     original: string
     translated: string
@@ -86,68 +88,35 @@ export default function BatchPage() {
     }
   }, [batchId])
 
-  // Handle batch download - open format modal
-  const handleBatchDownload = () => {
+  // Handle batch download
+  const handleBatchDownload = async () => {
     if (!batchId) return
-    setDownloadMode('batch')
-    setShowFormatModal(true)
-  }
-
-  // Handle single file download - open format modal
-  const handleSingleDownload = (file: FileItem) => {
-    setCurrentFileForDownload(file)
-    setDownloadMode('single')
-    setShowFormatModal(true)
-  }
-
-  // Handle single file direct download (without modal)
-  const handleDirectDownload = async (file: FileItem, format: string) => {
-    if (!file.taskId) return
 
     try {
-      const response = await downloadSingleFileContent(file.taskId, format)
-      const url = URL.createObjectURL(response.blob)
+      const blob = await downloadBatchFormats(batchId, [selectedFormat])
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = response.filename
+      a.download = `batch_${batchId}.${selectedFormat === 'pdf_premium' ? 'pdf' : selectedFormat}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Direct download failed:', error)
+      console.error('Download failed:', error)
     }
   }
 
-  // Confirm download with selected formats
-  const handleDownloadConfirm = async (formats: string[]) => {
-    setShowFormatModal(false)
-    if (formats.length === 0) return
+  // Handle single file download
+  const handleSingleDownload = async (file: FileItem) => {
+    if (!file.taskId) return
 
     try {
-      let blob: Blob
-      let filename: string
-
-      if (downloadMode === 'batch' && batchId) {
-        blob = await downloadBatchFormats(batchId, formats)
-        filename = `batch_${batchId}_${formats.join('_')}.zip`
-      } else if (downloadMode === 'single' && currentFileForDownload?.taskId) {
-        // Single file: if only one format selected, download directly as file
-        if (formats.length === 1 && formats[0]) {
-          await handleDirectDownload(currentFileForDownload, formats[0])
-          return
-        }
-        // Multiple formats: download as ZIP
-        blob = await downloadSingleFileFormats(currentFileForDownload.taskId, formats)
-        filename = `${currentFileForDownload.file.name.split('.')[0]}_${formats.join('_')}.zip`
-      } else {
-        return
-      }
-
-      const url = URL.createObjectURL(blob)
+      const response = await downloadSingleFileContent(file.taskId, selectedFormat)
+      const url = URL.createObjectURL(response.blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = filename
+      a.download = response.filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -233,6 +202,29 @@ export default function BatchPage() {
             </AnimatePresence>
           </div>
 
+          {/* Format Selection */}
+          {files.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-neutral-900 mb-3">选择输出格式</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {formatOptions.map((option) => (
+                  <div
+                    key={option.id}
+                    onClick={() => setSelectedFormat(option.id)}
+                    className={cn(
+                      'p-4 rounded-xl border cursor-pointer transition-all',
+                      'border-neutral-200 hover:border-primary/40 hover:bg-primary/5',
+                      selectedFormat === option.id && 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                    )}
+                  >
+                    <div className="font-medium text-neutral-900">{option.label}</div>
+                    <div className="text-sm text-neutral-500 mt-1">{option.description}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           {files.length > 0 && (
             <div className="flex gap-3 pt-4 border-t border-neutral-200">
@@ -270,20 +262,11 @@ export default function BatchPage() {
         <p>需要修改翻译配置？请前往「设置」页面</p>
       </div>
 
-      {/* Format Selection Modal */}
-      <DownloadFormatModal
-        isOpen={showFormatModal}
-        onClose={() => setShowFormatModal(false)}
-        onConfirm={handleDownloadConfirm}
-        selectedFormats={selectedFormats}
-        onFormatChange={setSelectedFormats}
-      />
-
       {/* File Preview Modal */}
       <FilePreviewModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
-        fileName={currentFileForDownload?.file.name}
+        fileName={previewContent ? '' : undefined}
         originalPdf={previewContent?.originalPdf}
         translatedPdf={previewContent?.translatedPdf}
       />
